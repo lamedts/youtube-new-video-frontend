@@ -23,11 +23,12 @@ export interface Channel {
   subscriber_count?: string
   last_video_id: string
   last_video_title?: string
-  last_video_date?: string
+  last_upload_at?: string
   notify: boolean
   subscribed_at: string
   last_updated: string
   rss_url: string
+  link?: string
 }
 
 // State interfaces
@@ -51,7 +52,7 @@ export interface VideoFilters {
 export interface ChannelFilters {
   searchTerm: string
   notificationFilter: 'all' | 'notify-on' | 'notify-off'
-  sortBy: 'name' | 'subscribers' | 'last_video'
+  sortBy: 'name' | 'subscribers' | 'last_video' | 'last_upload'
   sortOrder: 'asc' | 'desc'
 }
 
@@ -202,6 +203,6 @@ export interface VideoPlayerProps {
 
 // Utility types
 export type NotificationFilter = 'all' | 'notify-on' | 'notify-off'
-export type ChannelSortBy = 'name' | 'subscribers' | 'last_video'
+export type ChannelSortBy = 'name' | 'subscribers' | 'last_video' | 'last_upload'
 export type SortOrder = 'asc' | 'desc'
 export type DateRange = { start: string; end: string }

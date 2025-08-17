@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Eye, Star, Trash2, Play, Volume2 } from 'lucide-react'
+import { Eye, Star, Trash2, Play, Volume2, BellOff } from 'lucide-react'
 import { Video } from '@/types'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 import { openPlayer } from '@/lib/redux/slices/playerSlice'
 import { useUpdateVideoClickMutation, useToggleVideoFavoriteMutation, useDeleteVideoMutation } from '@/lib/redux/api/videosApi'
-import { useGetChannelsQuery } from '@/lib/redux/api/channelsApi'
+import { useGetChannelsQuery, useToggleChannelNotificationMutation } from '@/lib/redux/api/channelsApi'
 
 interface VideoRowProps {
   video: Video
@@ -18,7 +18,9 @@ export default function VideoRow({ video }: VideoRowProps) {
   const [updateVideoClick] = useUpdateVideoClickMutation()
   const [toggleVideoFavorite] = useToggleVideoFavoriteMutation()
   const [deleteVideo] = useDeleteVideoMutation()
+  const [toggleChannelNotification] = useToggleChannelNotificationMutation()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isTogglingNotification, setIsTogglingNotification] = useState(false)
 
   // Check if this video is currently playing
   const isCurrentlyPlaying = isOpen && currentVideo?.video_id === video.video_id
@@ -73,6 +75,24 @@ export default function VideoRow({ video }: VideoRowProps) {
     }
   }
 
+  const handleDisableChannelNotification = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (window.confirm(`Are you sure you want to disable notifications for ${video.channel_title}?`)) {
+      setIsTogglingNotification(true)
+      try {
+        // Only disable if channel is currently enabled
+        const channel = channels?.find(ch => ch.channel_id === video.channel_id)
+        if (channel?.notify) {
+          await toggleChannelNotification(video.channel_id).unwrap()
+        }
+        setIsTogglingNotification(false)
+      } catch (error) {
+        console.error('Failed to disable channel notification:', error)
+        setIsTogglingNotification(false)
+      }
+    }
+  }
+
   const isViewed = video.is_viewed || video.click_count > 0
 
   return (
@@ -81,16 +101,21 @@ export default function VideoRow({ video }: VideoRowProps) {
       bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700
       hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600
       ${isViewed ? 'opacity-70' : ''}
-      ${isDeleting ? 'opacity-50 pointer-events-none' : ''}
+      ${isDeleting || isTogglingNotification ? 'opacity-50 pointer-events-none' : ''}
     `}>
       <div className="flex items-center space-x-4">
-        {/* Playing Indicator */}
+        {/* Playing Indicator / New Video Dot */}
         <div className="flex-shrink-0 w-6 flex items-center justify-center">
-          {isCurrentlyPlaying && (
+          {isCurrentlyPlaying ? (
             <div title="Currently playing">
               <Volume2 className="h-4 w-4 text-green-500 animate-pulse" />
             </div>
-          )}
+          ) : (video.click_count === 0 || video.click_count === null || video.click_count === undefined) ? (
+            <div 
+              className="w-3 h-3 bg-red-500 rounded-full animate-pulse"
+              title="New video"
+            />
+          ) : null}
         </div>
 
         {/* Channel Thumbnail */}
@@ -99,7 +124,7 @@ export default function VideoRow({ video }: VideoRowProps) {
           onClick={handleVideoClick}
         >
           <div className={`
-            w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center
+            w-24 h-24 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center
             transition-all duration-200 hover:opacity-80
             ${isViewed ? 'grayscale' : ''}
           `}>
@@ -141,30 +166,44 @@ export default function VideoRow({ video }: VideoRowProps) {
               <Play className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity text-blue-500" />
             </h3>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-            Channel: {video.channel_title} • Published: {video.published_at ? formatDate(video.published_at) : 'Unknown'}
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate mb-1">
+            Channel: {video.channel_title}
           </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+            Published: {video.published_at ? formatDate(video.published_at) : 'Unknown'}
+          </p>
+          <div className="flex items-center space-x-2 mt-2">
+            {/* View Count */}
+            <div className="flex items-center space-x-2 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700">
+              <Eye className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {video.click_count}
+              </span>
+              <button
+                onClick={handleToggleFavorite}
+                className="ml-1 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Star className={`h-4 w-4 ${
+                  video.is_favorite
+                    ? 'text-yellow-500 fill-current'
+                    : 'text-gray-400 hover:text-yellow-500'
+                }`} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center space-x-3">
-          {/* View Count */}
-          <div className="flex items-center space-x-2 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700">
-            <Eye className="h-4 w-4 text-blue-500" />
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
-              {video.click_count}
-            </span>
-            <button
-              onClick={handleToggleFavorite}
-              className="ml-1 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              <Star className={`h-4 w-4 ${
-                video.is_favorite
-                  ? 'text-yellow-500 fill-current'
-                  : 'text-gray-400 hover:text-yellow-500'
-              }`} />
-            </button>
-          </div>
+          {/* Disable Channel Notification Button */}
+          <button
+            onClick={handleDisableChannelNotification}
+            disabled={isTogglingNotification}
+            className="p-2 rounded-lg text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+            title="Disable notifications for this channel"
+          >
+            <BellOff className="h-4 w-4" />
+          </button>
 
           {/* Delete Button */}
           <button

@@ -27,7 +27,7 @@ export default function ChannelsTab() {
   }
 
   const handleSortByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    dispatch(setSortBy(e.target.value as 'name' | 'subscribers' | 'last_video'))
+    dispatch(setSortBy(e.target.value as 'name' | 'subscribers' | 'last_video' | 'last_upload'))
   }
 
   const handleBulkEnable = async () => {
@@ -104,6 +104,7 @@ export default function ChannelsTab() {
             <option value="name">Sort by Name</option>
             <option value="subscribers">Sort by Subscribers</option>
             <option value="last_video">Sort by Last Video</option>
+            <option value="last_upload">Sort by Last Upload</option>
           </select>
 
           {/* Sort Order Button */}

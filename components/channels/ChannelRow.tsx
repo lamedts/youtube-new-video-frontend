@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, BellOff, Users, Calendar, User } from 'lucide-react'
+import { Bell, BellOff, Users, Calendar, ExternalLink } from 'lucide-react'
 import { Channel } from '@/types'
 import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { toggleChannelSelection } from '@/lib/redux/slices/channelsSlice'
@@ -35,12 +35,12 @@ export default function ChannelRow({ channel }: ChannelRowProps) {
     try {
       return new Date(dateString).toLocaleDateString()
     } catch {
-      return 'Unknown'
+      return ''
     }
   }
 
   const formatSubscriberCount = (count: string) => {
-    if (!count) return 'Unknown'
+    if (!count) return '-'
     const num = parseInt(count.replace(/[^\d]/g, ''))
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M subscribers`
@@ -97,14 +97,14 @@ export default function ChannelRow({ channel }: ChannelRowProps) {
         {/* Channel Thumbnail/Avatar */}
         <div className="flex-shrink-0">
           {channel.thumbnail ? (
-            <img 
-              src={channel.thumbnail} 
+            <img
+              src={channel.thumbnail}
               alt={channel.title}
-              className="w-12 h-12 rounded-full object-cover"
+              className="w-24 h-24 rounded-full object-cover"
             />
           ) : (
             <div className={`
-              w-12 h-12 rounded-full flex items-center justify-center text-white font-bold
+              w-24 h-24 rounded-full flex items-center justify-center text-white font-bold
               ${getAvatarColor(channel.title)}
             `}>
               {getChannelInitial(channel.title)}
@@ -114,27 +114,39 @@ export default function ChannelRow({ channel }: ChannelRowProps) {
 
         {/* Channel Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-1">
+          <div className="mb-1">
             <h3 className="font-medium text-gray-900 dark:text-white truncate">
               {channel.title}
             </h3>
-            <span className="text-sm text-gray-400 dark:text-gray-500 whitespace-nowrap flex items-center">
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-gray-400 dark:text-gray-500 flex items-center">
               <Users className="h-3 w-3 mr-1" />
               {formatSubscriberCount(channel.subscriber_count || '')}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-            Last video: {channel.last_video_title || 'No videos'} 
-            {channel.last_video_date && (
-              <>
-                <span className="mx-1">•</span>
+            </p>
+            {channel.last_upload_at && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                 <span className="inline-flex items-center">
                   <Calendar className="h-3 w-3 mr-1" />
-                  {formatDate(channel.last_video_date)}
+                  Last upload at: {formatDate(channel.last_upload_at)}
                 </span>
-              </>
+              </p>
             )}
-          </p>
+            {channel.link && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                <a 
+                  href={channel.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  View channel
+                </a>
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Notification Toggle */}
@@ -143,8 +155,8 @@ export default function ChannelRow({ channel }: ChannelRowProps) {
           disabled={isToggling}
           className={`
             p-2 rounded-lg transition-all duration-200
-            ${channel.notify 
-              ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+            ${channel.notify
+              ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30'
               : 'text-gray-400 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
             }
             disabled:opacity-50 disabled:cursor-not-allowed

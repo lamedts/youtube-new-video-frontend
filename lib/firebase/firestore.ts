@@ -32,22 +32,15 @@ export class VideoService {
       const videosRef = collection(db, COLLECTIONS.VIDEOS)
       const constraints: QueryConstraint[] = []
 
-      // Add search filter
-      if (filters.searchTerm) {
-        // Note: Firestore doesn't support full-text search natively
-        // For production, consider using Algolia or similar
-        constraints.push(
-          where('title', '>=', filters.searchTerm),
-          where('title', '<=', filters.searchTerm + '\uf8ff')
-        )
-      }
+      // Don't add search filter to Firestore query - we'll filter client-side
+      // to support searching both title and channel name
 
       // Add date range filters
       if (filters.dateRange.start) {
-        constraints.push(where('discovered_at', '>=', new Date(filters.dateRange.start)))
+        constraints.push(where('published_at', '>=', new Date(filters.dateRange.start)))
       }
       if (filters.dateRange.end) {
-        constraints.push(where('discovered_at', '<=', new Date(filters.dateRange.end)))
+        constraints.push(where('published_at', '<=', new Date(filters.dateRange.end)))
       }
 
       // Add favorites filter
@@ -60,16 +53,27 @@ export class VideoService {
         constraints.push(where('is_viewed', '==', false))
       }
 
-      // Order by discovery date (newest first)
-      constraints.push(orderBy('discovered_at', 'desc'))
+      // Order by publish date (newest first)
+      constraints.push(orderBy('published_at', 'desc'))
 
       const q = query(videosRef, ...constraints)
       const querySnapshot = await getDocs(q)
 
-      return querySnapshot.docs.map(doc => ({
+      let videos = querySnapshot.docs.map(doc => ({
         video_id: doc.id,
         ...doc.data()
       } as Video))
+
+      // Apply search filter client-side to search both title and channel name
+      if (filters.searchTerm) {
+        const searchTerm = filters.searchTerm.toLowerCase()
+        videos = videos.filter(video => 
+          video.title.toLowerCase().includes(searchTerm) ||
+          video.channel_title.toLowerCase().includes(searchTerm)
+        )
+      }
+
+      return videos
     } catch (error) {
       console.error('Error fetching videos:', error)
       throw new Error('Failed to fetch videos')
@@ -177,18 +181,13 @@ export class ChannelService {
         constraints.push(where('notify', '==', false))
       }
 
-      // Add search filter (basic - for production use search index)
-      if (filters.searchTerm) {
-        constraints.push(
-          where('title', '>=', filters.searchTerm),
-          where('title', '<=', filters.searchTerm + '\uf8ff')
-        )
-      }
+      // Don't add search filter to Firestore query - we'll filter client-side
+      // for better search functionality
 
       // Add sorting
       let orderByField = 'title'
-      if (filters.sortBy === 'last_video') {
-        orderByField = 'last_video_date'
+      if (filters.sortBy === 'last_video' || filters.sortBy === 'last_upload') {
+        orderByField = 'last_upload_at'
       } else if (filters.sortBy === 'subscribers') {
         orderByField = 'subscriber_count'
       }
@@ -198,12 +197,60 @@ export class ChannelService {
       const q = query(channelsRef, ...constraints)
       const querySnapshot = await getDocs(q)
 
-      return querySnapshot.docs.map(doc => ({
+      let channels = querySnapshot.docs.map(doc => ({
         channel_id: doc.id,
         ...doc.data()
       } as Channel))
+
+      // Apply search filter client-side for better partial matching
+      if (filters.searchTerm) {
+        const searchTerm = filters.searchTerm.toLowerCase()
+        channels = channels.filter(channel => 
+          channel.title.toLowerCase().includes(searchTerm)
+        )
+      }
+
+      return channels
     } catch (error) {
       console.error('Error fetching channels:', error)
+      
+      // If the error is due to missing index, try without sorting
+      if ((error as any).code === 'failed-precondition') {
+        console.warn('Firestore index missing for sorting, falling back to unsorted results')
+        try {
+          const channelsRef = collection(db, COLLECTIONS.CHANNELS)
+          const constraints: QueryConstraint[] = []
+
+          // Add notification filter
+          if (filters.notificationFilter === 'notify-on') {
+            constraints.push(where('notify', '==', true))
+          } else if (filters.notificationFilter === 'notify-off') {
+            constraints.push(where('notify', '==', false))
+          }
+
+          const q = query(channelsRef, ...constraints)
+          const querySnapshot = await getDocs(q)
+
+          let channels = querySnapshot.docs.map(doc => ({
+            channel_id: doc.id,
+            ...doc.data()
+          } as Channel))
+
+          // Apply search filter client-side
+          if (filters.searchTerm) {
+            const searchTerm = filters.searchTerm.toLowerCase()
+            channels = channels.filter(channel => 
+              channel.title.toLowerCase().includes(searchTerm)
+            )
+          }
+
+          return channels
+        } catch (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError)
+          throw new Error('Failed to fetch channels')
+        }
+      }
+      
       throw new Error('Failed to fetch channels')
     }
   }
