@@ -25,10 +25,13 @@ export default function Header() {
   }
 
   const formatDate = (dateString: string) => {
+    if (dateString === '-') {
+      return '-'
+    }
     try {
       return new Date(dateString).toLocaleString()
     } catch {
-      return 'Never'
+      return '-'
     }
   }
 
@@ -40,7 +43,7 @@ export default function Header() {
             <div className="flex items-center space-x-2">
               <Video className="h-8 w-8 text-red-500" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                YouTube Bot Manager
+                YouTube Tool
               </h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -61,7 +64,7 @@ export default function Header() {
                   Autoplay {settings.autoplay ? 'ON' : 'OFF'}
                 </span>
               </button>
-              
+
               <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-6 w-20 rounded"></div>
             </div>
           </div>
@@ -78,7 +81,7 @@ export default function Header() {
             <div className="flex items-center space-x-2">
               <Video className="h-8 w-8 text-red-500" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                YouTube Bot Manager
+                YouTube Tool
               </h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -99,7 +102,7 @@ export default function Header() {
                   Autoplay {settings.autoplay ? 'ON' : 'OFF'}
                 </span>
               </button>
-              
+
               <div className="text-sm text-red-500">Failed to load stats</div>
             </div>
           </div>
@@ -116,7 +119,7 @@ export default function Header() {
           <div className="flex items-center space-x-2">
             <Video className="h-8 w-8 text-red-500" />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              YouTube Bot Manager
+              YouTube Tool
             </h1>
           </div>
 
@@ -126,7 +129,7 @@ export default function Header() {
             <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
               <Users className="h-4 w-4 text-blue-500" />
               <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.stats.enabledChannels || 0}/{stats?.stats.totalChannels || 0} Channels
+                {stats?.stats.enabledChannels ?? '-'}/{stats?.stats.totalChannels ?? '-'} Channels
               </span>
             </div>
 
@@ -134,7 +137,7 @@ export default function Header() {
             <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
               <Video className="h-4 w-4 text-green-500" />
               <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.stats.videosThisWeek || 0} Videos This Week
+                {stats?.stats.videosThisWeek ?? '-'} Videos This Week
               </span>
             </div>
 
@@ -142,7 +145,7 @@ export default function Header() {
             <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
               <Video className="h-4 w-4 text-purple-500" />
               <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.stats.totalVideos || 0} Total Videos
+                {stats?.stats.totalVideos ?? '-'} Total Videos
               </span>
             </div>
           </div>
@@ -152,13 +155,13 @@ export default function Header() {
             <div className="flex items-center space-x-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
               <Users className="h-3 w-3 text-blue-500" />
               <span className="text-xs font-medium text-gray-900 dark:text-white">
-                {stats?.stats.enabledChannels || 0}/{stats?.stats.totalChannels || 0}
+                {stats?.stats.enabledChannels ?? '-'}/{stats?.stats.totalChannels ?? '-'}
               </span>
             </div>
             <div className="flex items-center space-x-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
               <Video className="h-3 w-3 text-green-500" />
               <span className="text-xs font-medium text-gray-900 dark:text-white">
-                {stats?.stats.videosThisWeek || 0}
+                {stats?.stats.videosThisWeek ?? '-'}
               </span>
             </div>
           </div>
@@ -207,7 +210,7 @@ export default function Header() {
 
             {/* Last Sync */}
             <div className="hidden lg:block text-sm text-gray-500 dark:text-gray-400">
-              Last sync: {stats?.lastSyncTime ? formatDate(stats.lastSyncTime) : 'Never'}
+              Last sync: {stats?.lastSyncTime ? formatDate(stats.lastSyncTime) : '-'}
             </div>
           </div>
         </div>

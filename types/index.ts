@@ -4,6 +4,7 @@ export interface Video {
   title: string
   channel_id: string
   channel_title: string
+  channel_thumbnail?: string
   link: string
   youtube_url: string
   thumbnail?: string

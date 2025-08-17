@@ -20,8 +20,8 @@ import { Video, Channel, VideoFilters, ChannelFilters } from '@/types'
 // Collection names
 export const COLLECTIONS = {
   VIDEOS: 'videos',
-  CHANNELS: 'channels',
-  SETTINGS: 'settings',
+  CHANNELS: 'subscriptions',
+  SETTINGS: 'bot_state',
   STATS: 'stats'
 } as const
 
@@ -305,12 +305,25 @@ export class StatsService {
       // Get videos this week
       const oneWeekAgo = new Date()
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-      
+
       const videosRef = collection(db, COLLECTIONS.VIDEOS)
       const allVideosSnap = await getDocs(videosRef)
       const weekVideosSnap = await getDocs(
         query(videosRef, where('discovered_at', '>=', oneWeekAgo.toISOString()))
       )
+
+      // Get bot state for last sync time
+      let lastSyncTime = '-'
+      try {
+        const botStateRef = doc(db, 'bot_state', 'sync_status')
+        const botStateSnap = await getDoc(botStateRef)
+        if (botStateSnap.exists()) {
+          const botStateData = botStateSnap.data()
+          lastSyncTime = botStateData.last_sync || '-'
+        }
+      } catch (error) {
+        console.warn('Could not fetch bot_state, using fallback:', error)
+      }
 
       return {
         stats: {
@@ -319,7 +332,7 @@ export class StatsService {
           videosThisWeek: weekVideosSnap.size,
           totalVideos: allVideosSnap.size
         },
-        lastSyncTime: new Date().toISOString()
+        lastSyncTime
       }
     } catch (error) {
       console.error('Error fetching header stats:', error)

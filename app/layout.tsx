@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "YouTube Bot Manager",
-  description: "Manage your YouTube video bot with advanced tracking and notifications",
+  title: "YouTube Tool",
+  description: "Manage your YouTube video",
 };
 
 export default function RootLayout({
