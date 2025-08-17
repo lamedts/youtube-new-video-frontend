@@ -3,7 +3,7 @@
 const fs = require('fs')
 const path = require('path')
 
-console.log('🚀 YouTube Bot Manager Setup')
+console.log('🚀 YouTube Tool Setup')
 console.log('============================\n')
 
 // Check if .env.local exists

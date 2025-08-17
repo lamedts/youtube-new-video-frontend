@@ -37,7 +37,7 @@ export default function LoginPage() {
           <div className="flex items-center space-x-2">
             <Video className="h-8 w-8 text-red-500" />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              YouTube Bot Manager
+              YouTube Tool
             </h1>
           </div>
         </div>
@@ -45,9 +45,9 @@ export default function LoginPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <LoginForm 
-          onToggleMode={() => setIsSignUp(!isSignUp)} 
-          isSignUp={isSignUp} 
+        <LoginForm
+          onToggleMode={() => setIsSignUp(!isSignUp)}
+          isSignUp={isSignUp}
         />
       </div>
 
