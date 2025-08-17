@@ -75,7 +75,9 @@ export default function VideoRow({ video }: VideoRowProps) {
         {/* Playing Indicator */}
         <div className="flex-shrink-0 w-6 flex items-center justify-center">
           {isCurrentlyPlaying && (
-            <Volume2 className="h-4 w-4 text-green-500 animate-pulse" title="Currently playing" />
+            <div title="Currently playing">
+              <Volume2 className="h-4 w-4 text-green-500 animate-pulse" />
+            </div>
           )}
         </div>
 

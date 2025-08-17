@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { UIState } from '@/types'
+import { UIState, AppNotification } from '@/types'
 
 const initialState: UIState = {
   darkMode: false,
@@ -21,12 +21,7 @@ const uiSlice = createSlice({
     setActiveTab: (state, action: PayloadAction<'videos' | 'channels'>) => {
       state.activeTab = action.payload
     },
-    addNotification: (state, action: PayloadAction<{
-      id: string
-      type: 'success' | 'error' | 'warning' | 'info'
-      message: string
-      timestamp: number
-    }>) => {
+    addNotification: (state, action: PayloadAction<AppNotification>) => {
       state.notifications.push(action.payload)
     },
     removeNotification: (state, action: PayloadAction<string>) => {

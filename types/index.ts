@@ -132,10 +132,17 @@ export interface SettingsState {
   }
 }
 
+export interface AppNotification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  message: string
+  timestamp: number
+}
+
 export interface UIState {
   darkMode: boolean
   activeTab: 'videos' | 'channels'
-  notifications: Notification[]
+  notifications: AppNotification[]
   sidebar: {
     isOpen: boolean
     width: number
