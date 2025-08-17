@@ -8,8 +8,8 @@ const initialState: ChannelsState = {
   filters: {
     searchTerm: '',
     notificationFilter: 'all',
-    sortBy: 'name',
-    sortOrder: 'asc'
+    sortBy: 'last_upload',
+    sortOrder: 'desc'
   },
   selectedChannels: [],
   bulkOperations: {

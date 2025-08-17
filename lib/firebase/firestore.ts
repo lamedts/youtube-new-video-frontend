@@ -362,11 +362,11 @@ export class StatsService {
       // Get bot state for last sync time
       let lastSyncTime = '-'
       try {
-        const botStateRef = doc(db, 'bot_state', 'sync_status')
+        const botStateRef = doc(db, 'bot_state', 'sync_info')
         const botStateSnap = await getDoc(botStateRef)
         if (botStateSnap.exists()) {
           const botStateData = botStateSnap.data()
-          lastSyncTime = botStateData.last_sync || '-'
+          lastSyncTime = botStateData.last_subs_sync || '-'
         }
       } catch (error) {
         console.warn('Could not fetch bot_state, using fallback:', error)

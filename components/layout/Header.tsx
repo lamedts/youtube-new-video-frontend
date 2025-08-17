@@ -24,22 +24,51 @@ export default function Header() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    if (dateString === '-') {
+  const formatDate = (dateValue: any) => {
+    if (dateValue === '-' || !dateValue) {
       return '-'
     }
     try {
-      return new Date(dateString).toLocaleString()
-    } catch {
+      // Handle Firestore Timestamp objects (check for seconds and nanoseconds properties)
+      if (dateValue && typeof dateValue === 'object' && 
+          typeof dateValue.seconds === 'number' && 
+          typeof dateValue.nanoseconds === 'number') {
+        // Convert Firestore Timestamp to JavaScript Date
+        const jsDate = new Date(dateValue.seconds * 1000 + dateValue.nanoseconds / 1000000)
+        console.log('Converted Firestore Timestamp to JS Date:', jsDate)
+        return jsDate.toLocaleString()
+      }
+      // Handle Firestore Timestamp objects with toDate method (older format)
+      if (dateValue && typeof dateValue === 'object' && dateValue.toDate) {
+        const jsDate = dateValue.toDate()
+        console.log('Converted Firestore Timestamp to JS Date (toDate):', jsDate)
+        return jsDate.toLocaleString()
+      }
+      // Handle regular date strings
+      if (typeof dateValue === 'string') {
+        const date = new Date(dateValue)
+        if (isNaN(date.getTime())) {
+          return '-'
+        }
+        return date.toLocaleString()
+      }
+      // Handle Date objects
+      if (dateValue instanceof Date) {
+        return dateValue.toLocaleString()
+      }
+      console.log('Unhandled date value:', dateValue, 'Type:', typeof dateValue)
+      return '-'
+    } catch (error) {
+      console.error('Date formatting error:', error)
       return '-'
     }
   }
 
   if (isLoading) {
     return (
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="flex items-center justify-between h-full">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-2">
               <Video className="h-8 w-8 text-red-500" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -47,7 +76,27 @@ export default function Header() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Autoplay Toggle */}
+              {user && (
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-1 px-3 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                    Sign Out
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-between pb-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+            <div className="flex items-center space-x-4">
+              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-32 rounded"></div>
+              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-32 rounded"></div>
+              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-32 rounded"></div>
+            </div>
+            <div className="flex items-center space-x-4">
               <button
                 onClick={handleToggleAutoplay}
                 className={`flex items-center space-x-2 px-3 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
@@ -64,8 +113,7 @@ export default function Header() {
                   Autoplay {settings.autoplay ? 'ON' : 'OFF'}
                 </span>
               </button>
-
-              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-6 w-20 rounded"></div>
+              <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-6 w-24 rounded"></div>
             </div>
           </div>
         </div>
@@ -75,9 +123,9 @@ export default function Header() {
 
   if (error) {
     return (
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="flex items-center justify-between h-full">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-2">
               <Video className="h-8 w-8 text-red-500" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -85,7 +133,23 @@ export default function Header() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Autoplay Toggle */}
+              {user && (
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-1 px-3 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                    Sign Out
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-between pb-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+            <div className="text-sm text-red-500">Failed to load stats</div>
+            <div className="flex items-center space-x-4">
               <button
                 onClick={handleToggleAutoplay}
                 className={`flex items-center space-x-2 px-3 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
@@ -102,8 +166,7 @@ export default function Header() {
                   Autoplay {settings.autoplay ? 'ON' : 'OFF'}
                 </span>
               </button>
-
-              <div className="text-sm text-red-500">Failed to load stats</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Last sync: -</div>
             </div>
           </div>
         </div>
@@ -112,9 +175,10 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-        <div className="flex items-center justify-between h-full">
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* First Line - Logo and Logout */}
+        <div className="flex items-center justify-between h-16">
           {/* Left Section - Logo and Title */}
           <div className="flex items-center space-x-2">
             <Video className="h-8 w-8 text-red-500" />
@@ -123,8 +187,27 @@ export default function Header() {
             </h1>
           </div>
 
-          {/* Center Section - Stats Badges */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Right Section - Logout Only */}
+          <div className="flex items-center space-x-4">
+            {user && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-1 px-3 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                  Sign Out
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Second Line - Stats */}
+        <div className="flex items-center justify-between pb-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+          {/* Stats Section */}
+          <div className="flex items-center space-x-4">
             {/* Channel Badge */}
             <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
               <Users className="h-4 w-4 text-blue-500" />
@@ -150,23 +233,7 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Mobile Stats - Simplified */}
-          <div className="md:hidden flex items-center space-x-2">
-            <div className="flex items-center space-x-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
-              <Users className="h-3 w-3 text-blue-500" />
-              <span className="text-xs font-medium text-gray-900 dark:text-white">
-                {stats?.stats.enabledChannels ?? '-'}/{stats?.stats.totalChannels ?? '-'}
-              </span>
-            </div>
-            <div className="flex items-center space-x-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
-              <Video className="h-3 w-3 text-green-500" />
-              <span className="text-xs font-medium text-gray-900 dark:text-white">
-                {stats?.stats.videosThisWeek ?? '-'}
-              </span>
-            </div>
-          </div>
-
-          {/* Right Section - Autoplay, User & Last Sync */}
+          {/* Controls Section */}
           <div className="flex items-center space-x-4">
             {/* Autoplay Toggle */}
             <button
@@ -186,30 +253,8 @@ export default function Header() {
               </span>
             </button>
 
-            {/* User Info & Logout */}
-            {user && (
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
-                  <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-32">
-                    {user.email}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-1 px-3 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-                  title="Sign out"
-                >
-                  <LogOut className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                    Sign Out
-                  </span>
-                </button>
-              </div>
-            )}
-
             {/* Last Sync */}
-            <div className="hidden lg:block text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               Last sync: {stats?.lastSyncTime ? formatDate(stats.lastSyncTime) : '-'}
             </div>
           </div>
