@@ -1,17 +1,27 @@
 'use client'
 
-import { Video, Users, Bell, PlayCircle, PauseCircle } from 'lucide-react'
+import { Video, Users, Bell, PlayCircle, PauseCircle, LogOut, User } from 'lucide-react'
 import { useGetHeaderStatsQuery } from '@/lib/redux/api/settingsApi'
 import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { updatePlayerSettings } from '@/lib/redux/slices/playerSlice'
+import { useAuth } from '@/lib/firebase/auth'
 
 export default function Header() {
   const { data: stats, isLoading, error } = useGetHeaderStatsQuery()
   const dispatch = useAppDispatch()
   const { settings } = useAppSelector(state => state.player)
+  const { user, logout } = useAuth()
 
   const handleToggleAutoplay = () => {
     dispatch(updatePlayerSettings({ autoplay: !settings.autoplay }))
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -153,7 +163,7 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Right Section - Autoplay & Last Sync */}
+          {/* Right Section - Autoplay, User & Last Sync */}
           <div className="flex items-center space-x-4">
             {/* Autoplay Toggle */}
             <button
@@ -172,6 +182,28 @@ export default function Header() {
                 Autoplay {settings.autoplay ? 'ON' : 'OFF'}
               </span>
             </button>
+
+            {/* User Info & Logout */}
+            {user && (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
+                  <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-32">
+                    {user.email}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-1 px-3 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                    Sign Out
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Last Sync */}
             <div className="hidden lg:block text-sm text-gray-500 dark:text-gray-400">
