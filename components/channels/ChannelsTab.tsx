@@ -66,9 +66,9 @@ export default function ChannelsTab() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Search and Filter Bar */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="h-full flex flex-col">
+      {/* Search and Filter Bar - Fixed */}
+      <div className="flex-shrink-0 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -182,8 +182,10 @@ export default function ChannelsTab() {
         </div>
       </div>
 
-      {/* Channel List */}
-      <ChannelList />
+      {/* Channel List - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <ChannelList />
+      </div>
     </div>
   )
 }
