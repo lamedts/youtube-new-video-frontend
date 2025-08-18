@@ -28,7 +28,7 @@ export const channelsApi = createApi({
         url: `/${channelId}/notify`,
         method: 'PUT'
       }),
-      invalidatesTags: ['Channel', 'ChannelStats']
+      invalidatesTags: ['Channel', 'ChannelStats', 'Stats']
     }),
     bulkUpdateNotifications: builder.mutation<void, BulkNotificationUpdate>({
       query: (data) => ({
@@ -36,7 +36,7 @@ export const channelsApi = createApi({
         method: 'POST',
         body: data
       }),
-      invalidatesTags: ['Channel', 'ChannelStats']
+      invalidatesTags: ['Channel', 'ChannelStats', 'Stats']
     }),
     addChannel: builder.mutation<Channel, { rssUrl: string }>({
       query: (data) => ({
@@ -44,21 +44,21 @@ export const channelsApi = createApi({
         method: 'POST',
         body: data
       }),
-      invalidatesTags: ['Channel', 'ChannelStats']
+      invalidatesTags: ['Channel', 'ChannelStats', 'Stats']
     }),
     deleteChannel: builder.mutation<void, string>({
       query: (channelId) => ({
         url: `/${channelId}`,
         method: 'DELETE'
       }),
-      invalidatesTags: ['Channel', 'ChannelStats']
+      invalidatesTags: ['Channel', 'ChannelStats', 'Stats']
     }),
     syncChannels: builder.mutation<void, void>({
       query: () => ({
         url: '/sync',
         method: 'POST'
       }),
-      invalidatesTags: ['Channel', 'ChannelStats']
+      invalidatesTags: ['Channel', 'ChannelStats', 'Stats']
     })
   })
 })

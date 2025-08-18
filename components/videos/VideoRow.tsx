@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 import { openPlayer } from '@/lib/redux/slices/playerSlice'
 import { useUpdateVideoClickMutation, useToggleVideoFavoriteMutation, useDeleteVideoMutation } from '@/lib/redux/api/videosApi'
 import { useGetChannelsQuery, useToggleChannelNotificationMutation } from '@/lib/redux/api/channelsApi'
+import { settingsApi } from '@/lib/redux/api/settingsApi'
 
 interface VideoRowProps {
   video: Video
@@ -48,6 +49,8 @@ export default function VideoRow({ video }: VideoRowProps) {
     dispatch(openPlayer(video))
     try {
       await updateVideoClick(video.video_id).unwrap()
+      // Manually invalidate header stats to refresh new videos count
+      dispatch(settingsApi.util.invalidateTags(['Stats']))
     } catch (error) {
       console.error('Failed to update video click:', error)
     }
@@ -68,6 +71,8 @@ export default function VideoRow({ video }: VideoRowProps) {
       setIsDeleting(true)
       try {
         await deleteVideo(video.video_id).unwrap()
+        // Manually invalidate header stats to refresh total videos count
+        dispatch(settingsApi.util.invalidateTags(['Stats']))
       } catch (error) {
         console.error('Failed to delete video:', error)
         setIsDeleting(false)
@@ -84,6 +89,8 @@ export default function VideoRow({ video }: VideoRowProps) {
         const channel = channels?.find(ch => ch.channel_id === video.channel_id)
         if (channel?.notify) {
           await toggleChannelNotification(video.channel_id).unwrap()
+          // Manually invalidate header stats to refresh notifications count
+          dispatch(settingsApi.util.invalidateTags(['Stats']))
         }
         setIsTogglingNotification(false)
       } catch (error) {

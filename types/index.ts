@@ -36,7 +36,7 @@ export interface HeaderData {
   stats: {
     enabledChannels: number
     totalChannels: number
-    videosThisWeek: number
+    newVideos: number
     totalVideos: number
   }
   lastSyncTime: string

@@ -12,6 +12,7 @@ import {
   selectAllChannels
 } from '@/lib/redux/slices/channelsSlice'
 import { useBulkUpdateNotificationsMutation } from '@/lib/redux/api/channelsApi'
+import { settingsApi } from '@/lib/redux/api/settingsApi'
 
 export default function ChannelsTab() {
   const dispatch = useAppDispatch()
@@ -35,6 +36,8 @@ export default function ChannelsTab() {
       try {
         await bulkUpdateNotifications({ channelIds: selectedChannels, notify: true }).unwrap()
         dispatch(clearChannelSelection())
+        // Manually invalidate header stats to refresh notifications count
+        dispatch(settingsApi.util.invalidateTags(['Stats']))
       } catch (error) {
         console.error('Failed to enable notifications:', error)
       }
@@ -46,6 +49,8 @@ export default function ChannelsTab() {
       try {
         await bulkUpdateNotifications({ channelIds: selectedChannels, notify: false }).unwrap()
         dispatch(clearChannelSelection())
+        // Manually invalidate header stats to refresh notifications count
+        dispatch(settingsApi.util.invalidateTags(['Stats']))
       } catch (error) {
         console.error('Failed to disable notifications:', error)
       }

@@ -212,15 +212,15 @@ export default function Header() {
             <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
               <Users className="h-4 w-4 text-blue-500" />
               <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.stats.enabledChannels ?? '-'}/{stats?.stats.totalChannels ?? '-'} Channels
+Notifications: {stats?.stats.enabledChannels ?? '-'}/{stats?.stats.totalChannels ?? '-'} Channels
               </span>
             </div>
 
-            {/* Weekly Videos Badge */}
+            {/* New Videos Badge */}
             <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
               <Video className="h-4 w-4 text-green-500" />
               <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {stats?.stats.videosThisWeek ?? '-'} Videos This Week
+                {stats?.stats.newVideos ?? '-'} New Videos
               </span>
             </div>
 
