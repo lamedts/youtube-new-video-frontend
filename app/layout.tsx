@@ -12,6 +12,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "YouTube Tool",
   description: "Manage your YouTube video",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon.ico', type: 'image/x-icon', sizes: '16x16 32x32' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/favicon.png',
+  },
 };
 
 export default function RootLayout({

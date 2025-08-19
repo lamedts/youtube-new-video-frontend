@@ -12,6 +12,7 @@ import {
   selectAllChannels
 } from '@/lib/redux/slices/channelsSlice'
 import { useBulkUpdateNotificationsMutation } from '@/lib/redux/api/channelsApi'
+import { settingsApi } from '@/lib/redux/api/settingsApi'
 
 export default function ChannelsTab() {
   const dispatch = useAppDispatch()
@@ -35,6 +36,8 @@ export default function ChannelsTab() {
       try {
         await bulkUpdateNotifications({ channelIds: selectedChannels, notify: true }).unwrap()
         dispatch(clearChannelSelection())
+        // Manually invalidate header stats to refresh notifications count
+        dispatch(settingsApi.util.invalidateTags(['Stats']))
       } catch (error) {
         console.error('Failed to enable notifications:', error)
       }
@@ -46,6 +49,8 @@ export default function ChannelsTab() {
       try {
         await bulkUpdateNotifications({ channelIds: selectedChannels, notify: false }).unwrap()
         dispatch(clearChannelSelection())
+        // Manually invalidate header stats to refresh notifications count
+        dispatch(settingsApi.util.invalidateTags(['Stats']))
       } catch (error) {
         console.error('Failed to disable notifications:', error)
       }
@@ -61,9 +66,9 @@ export default function ChannelsTab() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Search and Filter Bar */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="h-full flex flex-col">
+      {/* Search and Filter Bar - Fixed */}
+      <div className="flex-shrink-0 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -177,8 +182,10 @@ export default function ChannelsTab() {
         </div>
       </div>
 
-      {/* Channel List */}
-      <ChannelList />
+      {/* Channel List - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <ChannelList />
+      </div>
     </div>
   )
 }

@@ -7,7 +7,7 @@ const initialState: PlayerState = {
   currentVideo: null,
   playHistory: [],
   settings: {
-    autoplay: false,
+    autoplay: true,
     volume: 0.8,
     rememberPosition: true
   }

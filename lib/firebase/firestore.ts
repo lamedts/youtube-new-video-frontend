@@ -349,15 +349,19 @@ export class StatsService {
         query(channelsRef, where('notify', '==', true))
       )
 
-      // Get videos this week
-      const oneWeekAgo = new Date()
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-
+      // Get new videos (unviewed - click_count = 0 or null)
       const videosRef = collection(db, COLLECTIONS.VIDEOS)
       const allVideosSnap = await getDocs(videosRef)
-      const weekVideosSnap = await getDocs(
-        query(videosRef, where('discovered_at', '>=', oneWeekAgo.toISOString()))
-      )
+      
+      // Count videos with click_count = 0 or null (new videos)
+      let newVideosCount = 0
+      allVideosSnap.docs.forEach(doc => {
+        const data = doc.data()
+        const clickCount = data.click_count
+        if (clickCount === 0 || clickCount === null || clickCount === undefined) {
+          newVideosCount++
+        }
+      })
 
       // Get bot state for last sync time
       let lastSyncTime = '-'
@@ -376,7 +380,7 @@ export class StatsService {
         stats: {
           enabledChannels: enabledChannelsSnap.size,
           totalChannels: allChannelsSnap.size,
-          videosThisWeek: weekVideosSnap.size,
+          newVideos: newVideosCount,
           totalVideos: allVideosSnap.size
         },
         lastSyncTime

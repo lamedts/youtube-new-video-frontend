@@ -10,7 +10,7 @@ export const videosApi = createApi({
       return headers
     }
   }),
-  tagTypes: ['Video', 'VideoStats'],
+  tagTypes: ['Video', 'VideoStats', 'Stats'],
   endpoints: (builder) => ({
     getVideos: builder.query<Video[], VideoFilters>({
       query: (filters) => ({
@@ -28,28 +28,28 @@ export const videosApi = createApi({
         url: `/${videoId}/click`,
         method: 'PUT'
       }),
-      invalidatesTags: ['Video', 'VideoStats']
+      invalidatesTags: ['Video', 'VideoStats', 'Stats']
     }),
     toggleVideoFavorite: builder.mutation<Video, string>({
       query: (videoId) => ({
         url: `/${videoId}/favorite`,
         method: 'PUT'
       }),
-      invalidatesTags: ['Video']
+      invalidatesTags: ['Video', 'Stats']
     }),
     markVideoViewed: builder.mutation<Video, string>({
       query: (videoId) => ({
         url: `/${videoId}/viewed`,
         method: 'PUT'
       }),
-      invalidatesTags: ['Video']
+      invalidatesTags: ['Video', 'Stats']
     }),
     deleteVideo: builder.mutation<void, string>({
       query: (videoId) => ({
         url: `/${videoId}`,
         method: 'DELETE'
       }),
-      invalidatesTags: ['Video', 'VideoStats']
+      invalidatesTags: ['Video', 'VideoStats', 'Stats']
     }),
     searchVideos: builder.query<Video[], { query: string; limit?: number }>({
       query: ({ query, limit = 20 }) => ({

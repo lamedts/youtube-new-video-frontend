@@ -6,6 +6,7 @@ import { Channel } from '@/types'
 import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { toggleChannelSelection } from '@/lib/redux/slices/channelsSlice'
 import { useToggleChannelNotificationMutation } from '@/lib/redux/api/channelsApi'
+import { settingsApi } from '@/lib/redux/api/settingsApi'
 
 interface ChannelRowProps {
   channel: Channel
@@ -70,6 +71,8 @@ export default function ChannelRow({ channel }: ChannelRowProps) {
     setIsToggling(true)
     try {
       await toggleChannelNotification(channel.channel_id).unwrap()
+      // Manually invalidate header stats to refresh notifications count
+      dispatch(settingsApi.util.invalidateTags(['Stats']))
     } catch (error) {
       console.error('Failed to toggle notification:', error)
     } finally {
