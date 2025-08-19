@@ -37,9 +37,11 @@ export default function VideoRow({ video }: VideoRowProps) {
   // Find the channel that matches this video's channel_id
   const channel = channels?.find(ch => ch.channel_id === video.channel_id)
 
-  const formatDate = (dateString: string) => {
+  const formatDateTime = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString()
+      // Automatically converts UTC/ISO datetime to user's browser/system timezone without displaying timezone name
+      // This respects the user's local timezone settings for display while keeping the original UTC data intact
+      return new Date(dateString).toLocaleString()
     } catch {
       return 'Unknown'
     }
@@ -177,7 +179,7 @@ export default function VideoRow({ video }: VideoRowProps) {
             Channel: {video.channel_title}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-            Published: {video.published_at ? formatDate(video.published_at) : 'Unknown'}
+            Published: {video.published_at ? formatDateTime(video.published_at) : 'Unknown'}
           </p>
           <div className="flex items-center space-x-2 mt-2">
             {/* View Count */}

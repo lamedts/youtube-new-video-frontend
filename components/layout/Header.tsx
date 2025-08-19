@@ -36,12 +36,14 @@ export default function Header() {
         // Convert Firestore Timestamp to JavaScript Date
         const jsDate = new Date(dateValue.seconds * 1000 + dateValue.nanoseconds / 1000000)
         console.log('Converted Firestore Timestamp to JS Date:', jsDate)
+        // Automatically converts to user's browser/system timezone without displaying timezone name
         return jsDate.toLocaleString()
       }
       // Handle Firestore Timestamp objects with toDate method (older format)
       if (dateValue && typeof dateValue === 'object' && dateValue.toDate) {
         const jsDate = dateValue.toDate()
         console.log('Converted Firestore Timestamp to JS Date (toDate):', jsDate)
+        // Automatically converts to user's browser/system timezone without displaying timezone name
         return jsDate.toLocaleString()
       }
       // Handle regular date strings
@@ -50,10 +52,12 @@ export default function Header() {
         if (isNaN(date.getTime())) {
           return '-'
         }
+        // Automatically converts to user's browser/system timezone without displaying timezone name
         return date.toLocaleString()
       }
       // Handle Date objects
       if (dateValue instanceof Date) {
+        // Automatically converts to user's browser/system timezone without displaying timezone name
         return dateValue.toLocaleString()
       }
       console.log('Unhandled date value:', dateValue, 'Type:', typeof dateValue)
