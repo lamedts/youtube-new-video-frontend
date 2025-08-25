@@ -12,6 +12,13 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "YouTube Tool",
   description: "Manage your YouTube video",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "YouTube Tool",
+  },
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
@@ -19,7 +26,7 @@ export const metadata: Metadata = {
       { url: '/favicon.ico', type: 'image/x-icon', sizes: '16x16 32x32' }
     ],
     shortcut: '/favicon.ico',
-    apple: '/favicon.png',
+    apple: '/apple-touch-icon.svg',
   },
 };
 
