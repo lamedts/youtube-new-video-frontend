@@ -27,6 +27,8 @@ export default function VideoPlayer() {
     }
   }, [currentVideo?.video_id, autoplayEnabled])
 
+
+
   if (!isOpen || !currentVideo) return null
 
   const handleClose = () => {
@@ -42,6 +44,7 @@ export default function VideoPlayer() {
     setShowPlayer(true)
   }
 
+
   const handleOpenYouTube = () => {
     const url = currentVideo?.youtube_url || currentVideo?.link
     if (url) {
@@ -55,6 +58,7 @@ export default function VideoPlayer() {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)
     return match ? match[1] : null
   }
+
 
   const videoUrl = currentVideo?.youtube_url || currentVideo?.link
   const videoId = videoUrl ? getYouTubeVideoId(videoUrl) : null

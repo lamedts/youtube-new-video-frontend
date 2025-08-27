@@ -1,6 +1,7 @@
 'use client'
 
-import { Video, Users, Bell, PlayCircle, PauseCircle, LogOut, User } from 'lucide-react'
+import React from 'react'
+import { Video, Users, Bell, PlayCircle, PauseCircle, LogOut, User, RefreshCw } from 'lucide-react'
 import { useGetHeaderStatsQuery } from '@/lib/redux/api/settingsApi'
 import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { updatePlayerSettings } from '@/lib/redux/slices/playerSlice'
@@ -15,6 +16,11 @@ export default function Header() {
   const handleToggleAutoplay = () => {
     dispatch(updatePlayerSettings({ autoplay: !settings.autoplay }))
   }
+
+  const handleAppRefresh = () => {
+    window.location.reload()
+  }
+
 
   const handleLogout = async () => {
     try {
@@ -102,6 +108,16 @@ export default function Header() {
             </div>
             <div className="flex items-center space-x-4">
               <button
+                onClick={handleAppRefresh}
+                className="flex items-center space-x-2 px-3 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors bg-gray-100 dark:bg-gray-800"
+                title="Refresh Application"
+              >
+                <RefreshCw className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  Refresh
+                </span>
+              </button>
+              <button
                 onClick={handleToggleAutoplay}
                 className={`flex items-center space-x-2 px-3 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
                   settings.autoplay ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-100 dark:bg-gray-800'
@@ -154,6 +170,16 @@ export default function Header() {
           <div className="flex items-center justify-between pb-3 border-t border-gray-100 dark:border-gray-700 pt-3">
             <div className="text-sm text-red-500">Failed to load stats</div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={handleAppRefresh}
+                className="flex items-center space-x-2 px-3 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors bg-gray-100 dark:bg-gray-800"
+                title="Refresh Application"
+              >
+                <RefreshCw className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  Refresh
+                </span>
+              </button>
               <button
                 onClick={handleToggleAutoplay}
                 className={`flex items-center space-x-2 px-3 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
@@ -239,6 +265,18 @@ Notifications: {stats?.stats.enabledChannels ?? '-'}/{stats?.stats.totalChannels
 
           {/* Controls Section */}
           <div className="flex items-center space-x-4">
+            {/* App Refresh Button */}
+            <button
+              onClick={handleAppRefresh}
+              className="flex items-center space-x-2 px-3 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors bg-gray-100 dark:bg-gray-800"
+              title="Refresh Application"
+            >
+              <RefreshCw className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                Refresh
+              </span>
+            </button>
+
             {/* Autoplay Toggle */}
             <button
               onClick={handleToggleAutoplay}
