@@ -66,6 +66,9 @@ class FirestoreCache {
 
 const cache = new FirestoreCache()
 
+// Export cache for manual clearing if needed
+export { cache }
+
 // Collection names
 export const COLLECTIONS = {
   VIDEOS: 'videos',
@@ -462,18 +465,64 @@ export class StatsService {
       const channelsRef = collection(db, COLLECTIONS.CHANNELS)
       const videosRef = collection(db, COLLECTIONS.VIDEOS)
 
-      // Use getCountFromServer for much more efficient counting (1 read each vs loading all docs)
-      const [
-        totalChannelsCount,
-        enabledChannelsCount,
-        totalVideosCount,
-        unviewedVideosCount
-      ] = await Promise.all([
-        getCountFromServer(channelsRef),
-        getCountFromServer(query(channelsRef, where('notify', '==', true))),
-        getCountFromServer(videosRef),
-        getCountFromServer(query(videosRef, where('is_viewed', '==', false)))
-      ])
+      // Try efficient counting first, fallback to document counting if needed
+      let totalChannelsCount, enabledChannelsCount, totalVideosCount, newVideosCount
+
+      try {
+        // Use getCountFromServer for much better performance
+        const [tcc, ecc, tvc] = await Promise.all([
+          getCountFromServer(channelsRef),
+          getCountFromServer(query(channelsRef, where('notify', '==', true))),
+          getCountFromServer(videosRef)
+        ])
+        
+        totalChannelsCount = tcc.data().count
+        enabledChannelsCount = ecc.data().count
+        totalVideosCount = tvc.data().count
+        
+        // For new videos, we need to count documents since getCountFromServer 
+        // doesn't handle complex OR conditions well
+        const allVideosSnap = await getDocs(query(videosRef, limit(1000)))
+        newVideosCount = 0
+        allVideosSnap.docs.forEach(doc => {
+          const data = doc.data()
+          const isViewed = data.is_viewed
+          const clickCount = data.click_count
+          
+          // Consider a video "new" if:
+          // - is_viewed is false, null, or undefined  
+          // - OR click_count is 0, null, or undefined
+          if (!isViewed || clickCount === 0 || clickCount === null || clickCount === undefined) {
+            newVideosCount++
+          }
+        })
+        
+      } catch (countError) {
+        console.warn('getCountFromServer failed, falling back to document counting:', countError)
+        
+        // Fallback: Load limited documents for counting
+        const [allChannelsSnap, enabledChannelsSnap, allVideosSnap] = await Promise.all([
+          getDocs(query(channelsRef, limit(1000))),
+          getDocs(query(channelsRef, where('notify', '==', true), limit(1000))),
+          getDocs(query(videosRef, limit(1000)))
+        ])
+        
+        totalChannelsCount = allChannelsSnap.size
+        enabledChannelsCount = enabledChannelsSnap.size
+        totalVideosCount = allVideosSnap.size
+        
+        // Count new videos
+        newVideosCount = 0
+        allVideosSnap.docs.forEach(doc => {
+          const data = doc.data()
+          const isViewed = data.is_viewed
+          const clickCount = data.click_count
+          
+          if (!isViewed || clickCount === 0 || clickCount === null || clickCount === undefined) {
+            newVideosCount++
+          }
+        })
+      }
 
       // Get bot state for last sync time (only 1 document read)
       let lastSyncTime = '-'
@@ -490,10 +539,10 @@ export class StatsService {
 
       const result = {
         stats: {
-          enabledChannels: enabledChannelsCount.data().count,
-          totalChannels: totalChannelsCount.data().count,
-          newVideos: unviewedVideosCount.data().count,
-          totalVideos: totalVideosCount.data().count
+          enabledChannels: enabledChannelsCount,
+          totalChannels: totalChannelsCount,
+          newVideos: newVideosCount,
+          totalVideos: totalVideosCount
         },
         lastSyncTime
       }

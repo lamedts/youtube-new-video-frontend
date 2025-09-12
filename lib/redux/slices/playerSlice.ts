@@ -6,6 +6,7 @@ const initialState: PlayerState = {
   isMinimized: false,
   currentVideo: null,
   playHistory: [],
+  refreshTrigger: 0,
   settings: {
     autoplay: true,
     volume: 0.8,
@@ -39,6 +40,10 @@ const playerSlice = createSlice({
     },
     clearPlayHistory: (state) => {
       state.playHistory = []
+    },
+    refreshPlayer: (state) => {
+      // Increment refresh trigger to force VideoPlayer to refresh
+      state.refreshTrigger = (state.refreshTrigger || 0) + 1
     }
   }
 })
@@ -48,7 +53,8 @@ export const {
   closePlayer,
   toggleMinimize,
   updatePlayerSettings,
-  clearPlayHistory
+  clearPlayHistory,
+  refreshPlayer
 } = playerSlice.actions
 
 export default playerSlice.reducer

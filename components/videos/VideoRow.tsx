@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Eye, Star, Trash2, Play, Volume2, BellOff } from 'lucide-react'
 import { Video } from '@/types'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
-import { openPlayer } from '@/lib/redux/slices/playerSlice'
+import { openPlayer, refreshPlayer } from '@/lib/redux/slices/playerSlice'
 import { useUpdateVideoClickMutation, useToggleVideoFavoriteMutation, useDeleteVideoMutation } from '@/lib/redux/api/videosApi'
 import { useGetChannelsQuery, useToggleChannelNotificationMutation } from '@/lib/redux/api/channelsApi'
 import { settingsApi } from '@/lib/redux/api/settingsApi'
@@ -48,7 +48,15 @@ export default function VideoRow({ video }: VideoRowProps) {
   }
 
   const handleVideoClick = async () => {
-    dispatch(openPlayer(video))
+    // Check if this video is already the currently playing video
+    if (isCurrentlyPlaying) {
+      // Second click on same video - refresh the player
+      dispatch(refreshPlayer())
+    } else {
+      // First click or different video - open normally
+      dispatch(openPlayer(video))
+    }
+    
     try {
       await updateVideoClick(video.video_id).unwrap()
       // Manually invalidate header stats to refresh new videos count
