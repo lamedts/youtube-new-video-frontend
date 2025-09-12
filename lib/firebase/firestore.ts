@@ -10,12 +10,61 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
+  getCountFromServer,
   Timestamp,
   DocumentData,
-  QueryConstraint
+  QueryConstraint,
+  DocumentSnapshot
 } from 'firebase/firestore'
 import { db } from './config'
 import { Video, Channel, VideoFilters, ChannelFilters } from '@/types'
+
+// Cache for reducing duplicate reads
+interface CacheEntry<T> {
+  data: T
+  timestamp: number
+  ttl: number
+}
+
+class FirestoreCache {
+  private cache = new Map<string, CacheEntry<any>>()
+  private readonly DEFAULT_TTL = 5 * 60 * 1000 // 5 minutes
+
+  set<T>(key: string, data: T, ttl: number = this.DEFAULT_TTL): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl
+    })
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key)
+    if (!entry) return null
+
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.cache.delete(key)
+      return null
+    }
+
+    return entry.data as T
+  }
+
+  clear(keyPrefix?: string): void {
+    if (keyPrefix) {
+      for (const key of this.cache.keys()) {
+        if (key.startsWith(keyPrefix)) {
+          this.cache.delete(key)
+        }
+      }
+    } else {
+      this.cache.clear()
+    }
+  }
+}
+
+const cache = new FirestoreCache()
 
 // Collection names
 export const COLLECTIONS = {
@@ -27,13 +76,21 @@ export const COLLECTIONS = {
 
 // Video operations
 export class VideoService {
-  static async getVideos(filters: VideoFilters): Promise<Video[]> {
+  static async getVideos(
+    filters: VideoFilters, 
+    pageSize: number = 20, 
+    lastDoc?: DocumentSnapshot
+  ): Promise<{ videos: Video[], hasMore: boolean, lastDoc?: DocumentSnapshot }> {
     try {
+      // Create cache key based on filters and pagination
+      const cacheKey = `videos:${JSON.stringify(filters)}:${pageSize}:${lastDoc?.id || 'first'}`
+      const cached = cache.get<{ videos: Video[], hasMore: boolean, lastDoc?: DocumentSnapshot }>(cacheKey)
+      if (cached) {
+        return cached
+      }
+
       const videosRef = collection(db, COLLECTIONS.VIDEOS)
       const constraints: QueryConstraint[] = []
-
-      // Don't add search filter to Firestore query - we'll filter client-side
-      // to support searching both title and channel name
 
       // Add date range filters
       if (filters.dateRange.start) {
@@ -55,11 +112,23 @@ export class VideoService {
 
       // Order by publish date (newest first)
       constraints.push(orderBy('published_at', 'desc'))
+      
+      // Add pagination
+      constraints.push(limit(pageSize + 1)) // Get one extra to check if there are more
+      
+      if (lastDoc) {
+        constraints.push(startAfter(lastDoc))
+      }
 
       const q = query(videosRef, ...constraints)
       const querySnapshot = await getDocs(q)
 
-      let videos = querySnapshot.docs.map(doc => ({
+      const docs = querySnapshot.docs
+      const hasMore = docs.length > pageSize
+      const videoDocs = hasMore ? docs.slice(0, -1) : docs
+      const newLastDoc = videoDocs.length > 0 ? videoDocs[videoDocs.length - 1] : undefined
+
+      let videos = videoDocs.map(doc => ({
         video_id: doc.id,
         ...doc.data()
       } as Video))
@@ -73,7 +142,12 @@ export class VideoService {
         )
       }
 
-      return videos
+      const result = { videos, hasMore, lastDoc: newLastDoc }
+      
+      // Cache for 2 minutes to reduce duplicate queries
+      cache.set(cacheKey, result, 2 * 60 * 1000)
+      
+      return result
     } catch (error) {
       console.error('Error fetching videos:', error)
       throw new Error('Failed to fetch videos')
@@ -131,6 +205,10 @@ export class VideoService {
         is_viewed: true,
         last_viewed_at: new Date().toISOString()
       })
+      
+      // Clear relevant caches when data changes
+      cache.clear('videos:')
+      cache.clear('header-stats')
     } catch (error) {
       console.error('Error updating video click:', error)
       throw new Error('Failed to update video click')
@@ -150,6 +228,9 @@ export class VideoService {
       await updateDoc(videoRef, {
         is_favorite: !currentFavorite
       })
+      
+      // Clear caches when data changes
+      cache.clear('videos:')
     } catch (error) {
       console.error('Error toggling video favorite:', error)
       throw new Error('Failed to toggle video favorite')
@@ -169,8 +250,19 @@ export class VideoService {
 
 // Channel operations
 export class ChannelService {
-  static async getChannels(filters: ChannelFilters): Promise<Channel[]> {
+  static async getChannels(
+    filters: ChannelFilters, 
+    pageSize: number = 50,
+    lastDoc?: DocumentSnapshot
+  ): Promise<{ channels: Channel[], hasMore: boolean, lastDoc?: DocumentSnapshot }> {
     try {
+      // Create cache key
+      const cacheKey = `channels:${JSON.stringify(filters)}:${pageSize}:${lastDoc?.id || 'first'}`
+      const cached = cache.get<{ channels: Channel[], hasMore: boolean, lastDoc?: DocumentSnapshot }>(cacheKey)
+      if (cached) {
+        return cached
+      }
+
       const channelsRef = collection(db, COLLECTIONS.CHANNELS)
       const constraints: QueryConstraint[] = []
 
@@ -181,9 +273,6 @@ export class ChannelService {
         constraints.push(where('notify', '==', false))
       }
 
-      // Don't add search filter to Firestore query - we'll filter client-side
-      // for better search functionality
-
       // Add sorting
       let orderByField = 'title'
       if (filters.sortBy === 'last_video' || filters.sortBy === 'last_upload') {
@@ -193,11 +282,23 @@ export class ChannelService {
       }
 
       constraints.push(orderBy(orderByField, filters.sortOrder))
+      
+      // Add pagination
+      constraints.push(limit(pageSize + 1))
+      
+      if (lastDoc) {
+        constraints.push(startAfter(lastDoc))
+      }
 
       const q = query(channelsRef, ...constraints)
       const querySnapshot = await getDocs(q)
 
-      let channels = querySnapshot.docs.map(doc => ({
+      const docs = querySnapshot.docs
+      const hasMore = docs.length > pageSize
+      const channelDocs = hasMore ? docs.slice(0, -1) : docs
+      const newLastDoc = channelDocs.length > 0 ? channelDocs[channelDocs.length - 1] : undefined
+
+      let channels = channelDocs.map(doc => ({
         channel_id: doc.id,
         ...doc.data()
       } as Channel))
@@ -210,7 +311,12 @@ export class ChannelService {
         )
       }
 
-      return channels
+      const result = { channels, hasMore, lastDoc: newLastDoc }
+      
+      // Cache for 3 minutes
+      cache.set(cacheKey, result, 3 * 60 * 1000)
+      
+      return result
     } catch (error) {
       console.error('Error fetching channels:', error)
       
@@ -304,6 +410,10 @@ export class ChannelService {
         notify: !currentNotify,
         last_updated: new Date().toISOString()
       })
+      
+      // Clear caches when notification settings change
+      cache.clear('channels:')
+      cache.clear('header-stats')
     } catch (error) {
       console.error('Error toggling channel notification:', error)
       throw new Error('Failed to toggle channel notification')
@@ -342,28 +452,30 @@ export class ChannelService {
 export class StatsService {
   static async getHeaderStats() {
     try {
-      // Get total and enabled channels
+      // Check cache first - stats don't change often
+      const cacheKey = 'header-stats'
+      const cached = cache.get<{ stats: any, lastSyncTime: string }>(cacheKey)
+      if (cached) {
+        return cached
+      }
+
       const channelsRef = collection(db, COLLECTIONS.CHANNELS)
-      const allChannelsSnap = await getDocs(channelsRef)
-      const enabledChannelsSnap = await getDocs(
-        query(channelsRef, where('notify', '==', true))
-      )
-
-      // Get new videos (unviewed - click_count = 0 or null)
       const videosRef = collection(db, COLLECTIONS.VIDEOS)
-      const allVideosSnap = await getDocs(videosRef)
-      
-      // Count videos with click_count = 0 or null (new videos)
-      let newVideosCount = 0
-      allVideosSnap.docs.forEach(doc => {
-        const data = doc.data()
-        const clickCount = data.click_count
-        if (clickCount === 0 || clickCount === null || clickCount === undefined) {
-          newVideosCount++
-        }
-      })
 
-      // Get bot state for last sync time
+      // Use getCountFromServer for much more efficient counting (1 read each vs loading all docs)
+      const [
+        totalChannelsCount,
+        enabledChannelsCount,
+        totalVideosCount,
+        unviewedVideosCount
+      ] = await Promise.all([
+        getCountFromServer(channelsRef),
+        getCountFromServer(query(channelsRef, where('notify', '==', true))),
+        getCountFromServer(videosRef),
+        getCountFromServer(query(videosRef, where('is_viewed', '==', false)))
+      ])
+
+      // Get bot state for last sync time (only 1 document read)
       let lastSyncTime = '-'
       try {
         const botStateRef = doc(db, 'bot_state', 'sync_info')
@@ -376,18 +488,59 @@ export class StatsService {
         console.warn('Could not fetch bot_state, using fallback:', error)
       }
 
-      return {
+      const result = {
         stats: {
-          enabledChannels: enabledChannelsSnap.size,
-          totalChannels: allChannelsSnap.size,
-          newVideos: newVideosCount,
-          totalVideos: allVideosSnap.size
+          enabledChannels: enabledChannelsCount.data().count,
+          totalChannels: totalChannelsCount.data().count,
+          newVideos: unviewedVideosCount.data().count,
+          totalVideos: totalVideosCount.data().count
         },
         lastSyncTime
       }
+
+      // Cache for 10 minutes - stats don't change frequently
+      cache.set(cacheKey, result, 10 * 60 * 1000)
+      
+      return result
     } catch (error) {
       console.error('Error fetching header stats:', error)
-      throw new Error('Failed to fetch header stats')
+      
+      // Fallback to old method if getCountFromServer fails
+      try {
+        console.warn('Falling back to document counting method')
+        
+        const channelsRef = collection(db, COLLECTIONS.CHANNELS)
+        const videosRef = collection(db, COLLECTIONS.VIDEOS)
+        
+        // At least limit the fallback queries
+        const [allChannelsSnap, enabledChannelsSnap, allVideosSnap] = await Promise.all([
+          getDocs(query(channelsRef, limit(1000))), // Limit to prevent huge reads
+          getDocs(query(channelsRef, where('notify', '==', true), limit(1000))),
+          getDocs(query(videosRef, limit(1000)))
+        ])
+        
+        // Count unviewed videos from limited set
+        let newVideosCount = 0
+        allVideosSnap.docs.forEach(doc => {
+          const data = doc.data()
+          if (!data.is_viewed) {
+            newVideosCount++
+          }
+        })
+
+        return {
+          stats: {
+            enabledChannels: enabledChannelsSnap.size,
+            totalChannels: allChannelsSnap.size,
+            newVideos: newVideosCount,
+            totalVideos: allVideosSnap.size
+          },
+          lastSyncTime: '-'
+        }
+      } catch (fallbackError) {
+        console.error('Fallback method also failed:', fallbackError)
+        throw new Error('Failed to fetch header stats')
+      }
     }
   }
 }
