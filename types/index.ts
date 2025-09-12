@@ -119,6 +119,7 @@ export interface PlayerState {
   isMinimized: boolean
   currentVideo: Video | null
   playHistory: Video[]
+  refreshTrigger?: number
   settings: PlayerSettings
 }
 

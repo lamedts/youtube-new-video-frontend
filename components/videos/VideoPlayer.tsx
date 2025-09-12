@@ -1,19 +1,21 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Play, Minimize2, Maximize2, X, Eye, ExternalLink, Move } from 'lucide-react'
+import { Play, Minimize2, Maximize2, X, Eye, ExternalLink, Move, RefreshCw } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
 import { closePlayer, toggleMinimize } from '@/lib/redux/slices/playerSlice'
 
 export default function VideoPlayer() {
   const dispatch = useAppDispatch()
-  const { isOpen, isMinimized, currentVideo, settings } = useAppSelector(state => state.player)
+  const { isOpen, isMinimized, currentVideo, settings, refreshTrigger } = useAppSelector(state => state.player)
 
   // Safety check for settings
   const autoplayEnabled = settings?.autoplay || false
   const [showPlayer, setShowPlayer] = useState(false)
   const [playerSize, setPlayerSize] = useState({ width: 576, height: 396 }) // 1.5x larger (384*1.5=576, 264*1.5=396)
   const [isResizing, setIsResizing] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const playerRef = useRef<HTMLDivElement>(null)
 
   // Reset player state when video changes and handle autoplay
@@ -26,6 +28,17 @@ export default function VideoPlayer() {
       }
     }
   }, [currentVideo?.video_id, autoplayEnabled])
+
+  // Handle refresh trigger from Redux (for second-click refresh)
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0 && showPlayer) {
+      setRefreshKey(prev => prev + 1)
+      setIsRefreshing(true)
+      setTimeout(() => {
+        setIsRefreshing(false)
+      }, 1000)
+    }
+  }, [refreshTrigger, showPlayer])
 
 
 
@@ -42,6 +55,20 @@ export default function VideoPlayer() {
 
   const handlePlayClick = () => {
     setShowPlayer(true)
+  }
+
+  const handleRefresh = async () => {
+    if (!showPlayer) return
+    
+    setIsRefreshing(true)
+    
+    // Force iframe to reload by changing the key
+    setRefreshKey(prev => prev + 1)
+    
+    // Show refresh animation for a moment
+    setTimeout(() => {
+      setIsRefreshing(false)
+    }, 1000)
   }
 
 
@@ -150,13 +177,23 @@ export default function VideoPlayer() {
         </div>
         <div className="flex items-center space-x-1">
           {showPlayer && !isMinimized && (
-            <button
-              onClick={handleOpenYouTube}
-              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              title="Open in YouTube"
-            >
-              <ExternalLink className="h-4 w-4 text-red-500" />
-            </button>
+            <>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                title="Refresh video player"
+              >
+                <RefreshCw className={`h-4 w-4 text-blue-500 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={handleOpenYouTube}
+                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                title="Open in YouTube"
+              >
+                <ExternalLink className="h-4 w-4 text-red-500" />
+              </button>
+            </>
           )}
           <button
             onClick={handleToggleMinimize}
@@ -192,6 +229,7 @@ export default function VideoPlayer() {
           >
             {showPlayer && videoId ? (
               <iframe
+                key={`${videoId}-${refreshKey}`}
                 src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
                 title={currentVideo?.title || 'YouTube video'}
                 className="w-full h-full border-0"

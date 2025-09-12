@@ -4,6 +4,9 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/firebase/auth'
 
+// Force dynamic rendering to avoid SSG issues with Firebase
+export const dynamic = 'force-dynamic'
+
 export default function Home() {
   const { user, loading } = useAuth()
   const router = useRouter()
