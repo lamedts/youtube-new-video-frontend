@@ -32,6 +32,9 @@ class FirestoreCache {
   private readonly DEFAULT_TTL = 5 * 60 * 1000 // 5 minutes
 
   set<T>(key: string, data: T, ttl: number = this.DEFAULT_TTL): void {
+    // Skip caching during build/SSR to avoid issues
+    if (typeof window === 'undefined') return
+    
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -40,6 +43,9 @@ class FirestoreCache {
   }
 
   get<T>(key: string): T | null {
+    // Skip caching during build/SSR to avoid issues
+    if (typeof window === 'undefined') return null
+    
     const entry = this.cache.get(key)
     if (!entry) return null
 
@@ -52,6 +58,9 @@ class FirestoreCache {
   }
 
   clear(keyPrefix?: string): void {
+    // Skip caching during build/SSR to avoid issues
+    if (typeof window === 'undefined') return
+    
     if (keyPrefix) {
       for (const key of this.cache.keys()) {
         if (key.startsWith(keyPrefix)) {
@@ -353,7 +362,13 @@ export class ChannelService {
             )
           }
 
-          return channels
+          // Return in the expected paginated format for fallback
+          const result = { 
+            channels, 
+            hasMore: channels.length >= pageSize, // Assume more if we hit the limit
+            lastDoc: undefined // Fallback doesn't support pagination
+          }
+          return result
         } catch (fallbackError) {
           console.error('Fallback query also failed:', fallbackError)
           throw new Error('Failed to fetch channels')
@@ -466,7 +481,7 @@ export class StatsService {
       const videosRef = collection(db, COLLECTIONS.VIDEOS)
 
       // Try efficient counting first, fallback to document counting if needed
-      let totalChannelsCount, enabledChannelsCount, totalVideosCount, newVideosCount
+      let totalChannelsCount: number, enabledChannelsCount: number, totalVideosCount: number, newVideosCount: number
 
       try {
         // Use getCountFromServer for much better performance

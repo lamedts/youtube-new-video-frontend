@@ -3,6 +3,9 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/layout/Header'
+
+// Force dynamic rendering to avoid SSG issues with Firebase
+export const dynamic = 'force-dynamic'
 import TabNavigation from '@/components/layout/TabNavigation'
 import FirebaseStatus from '@/components/layout/FirebaseStatus'
 import ChannelsTab from '@/components/channels/ChannelsTab'
