@@ -1,6 +1,13 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { Video, VideoFilters } from '@/types'
 
+interface VideosResponse {
+  videos: Video[]
+  hasMore: boolean
+  lastDocId: string | null
+  total: number
+}
+
 export const videosApi = createApi({
   reducerPath: 'videosApi',
   baseQuery: fetchBaseQuery({
@@ -12,7 +19,7 @@ export const videosApi = createApi({
   }),
   tagTypes: ['Video', 'VideoStats', 'Stats'],
   endpoints: (builder) => ({
-    getVideos: builder.query<Video[], VideoFilters>({
+    getVideos: builder.query<VideosResponse, VideoFilters & { lastDocId?: string }>({
       query: (filters) => ({
         url: '',
         params: filters

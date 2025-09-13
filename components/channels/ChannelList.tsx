@@ -8,10 +8,12 @@ import { Loader2 } from 'lucide-react'
 export default function ChannelList() {
   const { filters } = useAppSelector(state => state.channels)
   const { 
-    data: channels = [], 
+    data: channelsData, 
     isLoading, 
     error 
   } = useGetChannelsQuery(filters)
+  
+  const channels = channelsData?.channels || []
 
   if (isLoading) {
     return (

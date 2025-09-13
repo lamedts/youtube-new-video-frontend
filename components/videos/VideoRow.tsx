@@ -27,7 +27,7 @@ export default function VideoRow({ video }: VideoRowProps) {
   const isCurrentlyPlaying = isOpen && currentVideo?.video_id === video.video_id
   
   // Fetch all channels and find the matching one
-  const { data: channels } = useGetChannelsQuery({
+  const { data: channelsData } = useGetChannelsQuery({
     searchTerm: '',
     notificationFilter: 'all',
     sortBy: 'name',
@@ -35,7 +35,7 @@ export default function VideoRow({ video }: VideoRowProps) {
   })
   
   // Find the channel that matches this video's channel_id
-  const channel = channels?.find(ch => ch.channel_id === video.channel_id)
+  const channel = channelsData?.channels?.find(ch => ch.channel_id === video.channel_id)
 
   const formatDateTime = (dateString: string) => {
     try {
@@ -96,7 +96,7 @@ export default function VideoRow({ video }: VideoRowProps) {
       setIsTogglingNotification(true)
       try {
         // Only disable if channel is currently enabled
-        const channel = channels?.find(ch => ch.channel_id === video.channel_id)
+        const channel = channelsData?.channels?.find(ch => ch.channel_id === video.channel_id)
         if (channel?.notify) {
           await toggleChannelNotification(video.channel_id).unwrap()
           // Manually invalidate header stats to refresh notifications count

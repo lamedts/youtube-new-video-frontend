@@ -26,15 +26,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get pagination parameters
-    const pageSize = parseInt(searchParams.get('pageSize') || '20')
+    // Get pagination parameters  
     const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
     
-    // For now, just return first page - you can implement cursor-based pagination later
-    const result = await VideoService.getVideos(filters, pageSize)
+    // Calculate offset for page-based pagination
+    const offset = (page - 1) * limit
     
-    // Return in the format the frontend expects
-    return NextResponse.json(result.videos)
+    const result = await VideoService.getVideosWithPagePagination(filters, limit, offset)
+    
+    // Return full pagination response
+    return NextResponse.json({
+      videos: result.videos,
+      total: result.total,
+      page: page,
+      limit: limit,
+      hasMore: (offset + result.videos.length) < result.total
+    })
   } catch (error) {
     console.error('Error fetching videos:', error)
 

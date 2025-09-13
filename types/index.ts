@@ -95,9 +95,12 @@ export interface BotSettings {
 export interface VideosState {
   items: Video[]
   loading: boolean
+  loadingMore: boolean
   error: string | null
   filters: VideoFilters
   pagination: Pagination
+  hasMore: boolean
+  lastDocId: string | null
   viewHistory: string[]
   favorites: string[]
 }

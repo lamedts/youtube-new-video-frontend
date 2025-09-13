@@ -91,11 +91,11 @@ export class VideoService {
   static async getVideos(
     filters: VideoFilters, 
     pageSize: number = 20, 
-    lastDoc?: DocumentSnapshot
+    lastDocId?: string
   ): Promise<{ videos: Video[], hasMore: boolean, lastDoc?: DocumentSnapshot }> {
     try {
       // Create cache key based on filters and pagination
-      const cacheKey = `videos:${JSON.stringify(filters)}:${pageSize}:${lastDoc?.id || 'first'}`
+      const cacheKey = `videos:${JSON.stringify(filters)}:${pageSize}:${lastDocId || 'first'}`
       const cached = cache.get<{ videos: Video[], hasMore: boolean, lastDoc?: DocumentSnapshot }>(cacheKey)
       if (cached) {
         return cached
@@ -128,8 +128,14 @@ export class VideoService {
       // Add pagination
       constraints.push(limit(pageSize + 1)) // Get one extra to check if there are more
       
-      if (lastDoc) {
-        constraints.push(startAfter(lastDoc))
+      // Handle pagination with document ID
+      if (lastDocId) {
+        // Get the document reference and use it for pagination
+        const lastDocRef = doc(db, COLLECTIONS.VIDEOS, lastDocId)
+        const lastDocSnap = await getDoc(lastDocRef)
+        if (lastDocSnap.exists()) {
+          constraints.push(startAfter(lastDocSnap))
+        }
       }
 
       const q = query(videosRef, ...constraints)
@@ -162,6 +168,94 @@ export class VideoService {
       return result
     } catch (error) {
       console.error('Error fetching videos:', error)
+      throw new Error('Failed to fetch videos')
+    }
+  }
+
+  static async getVideosWithPagePagination(
+    filters: VideoFilters, 
+    pageLimit: number = 20, 
+    offset: number = 0
+  ): Promise<{ videos: Video[], total: number }> {
+    try {
+      // Create cache key based on filters and pagination
+      const cacheKey = `videos-page:${JSON.stringify(filters)}:${pageLimit}:${offset}`
+      const cached = cache.get<{ videos: Video[], total: number }>(cacheKey)
+      if (cached) {
+        return cached
+      }
+
+      const videosRef = collection(db, COLLECTIONS.VIDEOS)
+      const constraints: QueryConstraint[] = []
+
+      // Add date range filters
+      if (filters.dateRange.start) {
+        constraints.push(where('published_at', '>=', new Date(filters.dateRange.start)))
+      }
+      if (filters.dateRange.end) {
+        constraints.push(where('published_at', '<=', new Date(filters.dateRange.end)))
+      }
+
+      // Add favorites filter
+      if (filters.showFavoritesOnly) {
+        constraints.push(where('is_favorite', '==', true))
+      }
+
+      // Add unviewed filter
+      if (filters.showUnviewedOnly) {
+        constraints.push(where('is_viewed', '==', false))
+      }
+
+      // Order by publish date (newest first)
+      constraints.push(orderBy('published_at', 'desc'))
+
+      // Get total count first (for pagination calculation)
+      const countQuery = query(videosRef, ...constraints)
+      const countSnapshot = await getCountFromServer(countQuery)
+      const total = countSnapshot.data().count
+
+      // Get paginated results
+      const paginatedConstraints = [...constraints]
+      
+      // Firestore doesn't have native offset, so we'll use limit and skip simulation
+      // For better performance with large offsets, consider using cursor-based pagination
+      if (offset > 0) {
+        // Get all docs up to offset + pageLimit, then slice
+        paginatedConstraints.push(limit(offset + pageLimit))
+      } else {
+        paginatedConstraints.push(limit(pageLimit))
+      }
+
+      const q = query(videosRef, ...paginatedConstraints)
+      const querySnapshot = await getDocs(q)
+
+      const allDocs = querySnapshot.docs
+      const startIndex = offset > 0 ? offset : 0
+      const endIndex = startIndex + pageLimit
+      const paginatedDocs = allDocs.slice(startIndex, endIndex)
+
+      let videos = paginatedDocs.map(doc => ({
+        video_id: doc.id,
+        ...doc.data()
+      } as Video))
+
+      // Apply search filter client-side to search both title and channel name
+      if (filters.searchTerm) {
+        const searchTerm = filters.searchTerm.toLowerCase()
+        videos = videos.filter(video => 
+          video.title.toLowerCase().includes(searchTerm) ||
+          video.channel_title.toLowerCase().includes(searchTerm)
+        )
+      }
+
+      const result = { videos, total }
+      
+      // Cache for 2 minutes to reduce duplicate queries
+      cache.set(cacheKey, result, 2 * 60 * 1000)
+      
+      return result
+    } catch (error) {
+      console.error('Error fetching videos with page pagination:', error)
       throw new Error('Failed to fetch videos')
     }
   }
@@ -265,11 +359,11 @@ export class ChannelService {
   static async getChannels(
     filters: ChannelFilters, 
     pageSize: number = 50,
-    lastDoc?: DocumentSnapshot
+    lastDocId?: string
   ): Promise<{ channels: Channel[], hasMore: boolean, lastDoc?: DocumentSnapshot }> {
     try {
       // Create cache key
-      const cacheKey = `channels:${JSON.stringify(filters)}:${pageSize}:${lastDoc?.id || 'first'}`
+      const cacheKey = `channels:${JSON.stringify(filters)}:${pageSize}:${lastDocId || 'first'}`
       const cached = cache.get<{ channels: Channel[], hasMore: boolean, lastDoc?: DocumentSnapshot }>(cacheKey)
       if (cached) {
         return cached
@@ -298,8 +392,13 @@ export class ChannelService {
       // Add pagination
       constraints.push(limit(pageSize + 1))
       
-      if (lastDoc) {
-        constraints.push(startAfter(lastDoc))
+      // Handle pagination with document ID
+      if (lastDocId) {
+        const lastDocRef = doc(db, COLLECTIONS.CHANNELS, lastDocId)
+        const lastDocSnap = await getDoc(lastDocRef)
+        if (lastDocSnap.exists()) {
+          constraints.push(startAfter(lastDocSnap))
+        }
       }
 
       const q = query(channelsRef, ...constraints)
@@ -346,10 +445,18 @@ export class ChannelService {
             constraints.push(where('notify', '==', false))
           }
 
+          // Add limit to fallback query too
+          constraints.push(limit(pageSize + 1))
+          
           const q = query(channelsRef, ...constraints)
           const querySnapshot = await getDocs(q)
 
-          let channels = querySnapshot.docs.map(doc => ({
+          const docs = querySnapshot.docs
+          const hasMore = docs.length > pageSize
+          const channelDocs = hasMore ? docs.slice(0, -1) : docs
+          const newLastDoc = channelDocs.length > 0 ? channelDocs[channelDocs.length - 1] : undefined
+
+          let channels = channelDocs.map(doc => ({
             channel_id: doc.id,
             ...doc.data()
           } as Channel))
@@ -365,8 +472,8 @@ export class ChannelService {
           // Return in the expected paginated format for fallback
           const result = { 
             channels, 
-            hasMore: channels.length >= pageSize, // Assume more if we hit the limit
-            lastDoc: undefined // Fallback doesn't support pagination
+            hasMore,
+            lastDoc: newLastDoc
           }
           return result
         } catch (fallbackError) {

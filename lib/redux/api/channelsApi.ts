@@ -1,6 +1,13 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { Channel, ChannelFilters, BulkNotificationUpdate } from '@/types'
 
+interface ChannelsResponse {
+  channels: Channel[]
+  hasMore: boolean
+  lastDocId: string | null
+  total: number
+}
+
 export const channelsApi = createApi({
   reducerPath: 'channelsApi',
   baseQuery: fetchBaseQuery({ 
@@ -12,7 +19,7 @@ export const channelsApi = createApi({
   }),
   tagTypes: ['Channel', 'ChannelStats'],
   endpoints: (builder) => ({
-    getChannels: builder.query<Channel[], ChannelFilters>({
+    getChannels: builder.query<ChannelsResponse, ChannelFilters & { lastDocId?: string }>({
       query: (filters) => ({ 
         url: '', 
         params: filters 

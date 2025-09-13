@@ -25,13 +25,17 @@ export async function GET(request: NextRequest) {
 
     // Get pagination parameters
     const pageSize = parseInt(searchParams.get('pageSize') || '50')
-    const page = parseInt(searchParams.get('page') || '1')
+    const lastDocId = searchParams.get('lastDocId') || undefined
     
-    // For now, just return first page - you can implement cursor-based pagination later
-    const result = await ChannelService.getChannels(filters, pageSize)
+    const result = await ChannelService.getChannels(filters, pageSize, lastDocId)
     
-    // Return in the format the frontend expects
-    return NextResponse.json(result.channels)
+    // Return full pagination response
+    return NextResponse.json({
+      channels: result.channels,
+      hasMore: result.hasMore,
+      lastDocId: result.lastDoc?.id || null,
+      total: result.channels.length
+    })
   } catch (error) {
     console.error('Error fetching channels:', error)
     
