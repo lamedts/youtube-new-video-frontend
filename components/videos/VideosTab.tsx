@@ -35,7 +35,8 @@ export default function VideosTab() {
   return (
     <div className="h-full flex flex-col">
       {/* Search and Filter Bar - Fixed */}
-      <div className="flex-shrink-0 bg-white dark:bg-gray-800 p-4 mx-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 mt-6">
+      <div className="flex-shrink-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 mt-6">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -101,6 +102,7 @@ export default function VideosTab() {
           >
             👁️ Unviewed Only
           </button>
+        </div>
         </div>
       </div>
 
