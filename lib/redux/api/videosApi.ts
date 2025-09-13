@@ -19,7 +19,7 @@ export const videosApi = createApi({
   }),
   tagTypes: ['Video', 'VideoStats', 'Stats'],
   endpoints: (builder) => ({
-    getVideos: builder.query<VideosResponse, VideoFilters & { lastDocId?: string }>({
+    getVideos: builder.query<VideosResponse, VideoFilters & { lastDocId?: string; page?: number; limit?: number }>({
       query: (filters) => ({
         url: '',
         params: filters

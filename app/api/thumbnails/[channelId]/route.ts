@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { channelId: string } }
+  context: { params: Promise<{ channelId: string }> }
 ) {
   try {
+    const params = await context.params
     const { channelId } = params
     const { searchParams } = new URL(request.url)
     const fallbackUrl = searchParams.get('fallback')
