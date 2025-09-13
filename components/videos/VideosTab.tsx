@@ -35,7 +35,7 @@ export default function VideosTab() {
   return (
     <div className="h-full flex flex-col">
       {/* Search and Filter Bar - Fixed */}
-      <div className="flex-shrink-0 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+      <div className="flex-shrink-0 bg-white dark:bg-gray-800 p-4 mx-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 mt-6">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -105,7 +105,7 @@ export default function VideosTab() {
       </div>
 
       {/* Video List - Scrollable */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-scroll">
         <VideoList />
       </div>
     </div>

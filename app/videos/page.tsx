@@ -47,7 +47,7 @@ export default function VideosPage() {
       <TabNavigation />
       <FirebaseStatus />
       
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">
+      <main className="flex-1 overflow-hidden">
         <VideosTab />
       </main>
 

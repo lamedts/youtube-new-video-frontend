@@ -150,10 +150,11 @@ export default function VideoList() {
   })
 
   return (
-    <div className="space-y-4 pb-4">
-      {videos.map((video) => (
-        <VideoRow key={video.video_id} video={video} />
-      ))}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="space-y-4 pb-4">
+        {videos.map((video) => (
+          <VideoRow key={video.video_id} video={video} />
+        ))}
       
       {/* Infinite scroll trigger */}
       {hasMore && (
@@ -186,6 +187,7 @@ export default function VideoList() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
