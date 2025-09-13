@@ -147,9 +147,15 @@ export default function VideoRow({ video }: VideoRowProps) {
           `}>
             {channel?.thumbnail ? (
               <img
-                src={channel.thumbnail}
+                src={`/api/thumbnails/${video.channel_id}?fallback=${encodeURIComponent(channel.thumbnail)}`}
                 alt={video.channel_title}
                 className="w-full h-full rounded-lg object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  // Hide image on 429 or other errors and show fallback
+                  console.warn(`Thumbnail failed to load for ${video.channel_title}:`, e);
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
             ) : video.channel_title ? (
               <div

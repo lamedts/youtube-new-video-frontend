@@ -29,12 +29,18 @@ export async function GET(request: NextRequest) {
     
     const result = await ChannelService.getChannels(filters, pageSize, lastDocId)
     
-    // Return full pagination response
+    // Return full pagination response with cache headers
     return NextResponse.json({
       channels: result.channels,
       hasMore: result.hasMore,
       lastDocId: result.lastDoc?.id || null,
       total: result.channels.length
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60', // 5min cache, 1min stale
+        'CDN-Cache-Control': 'public, s-maxage=1800', // 30min on CDN
+        'Vercel-CDN-Cache-Control': 'public, s-maxage=3600', // 1 hour on Vercel CDN
+      },
     })
   } catch (error) {
     console.error('Error fetching channels:', error)

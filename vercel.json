@@ -1,0 +1,36 @@
+{
+  "headers": [
+    {
+      "source": "/api/channels/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=300, stale-while-revalidate=60"
+        },
+        {
+          "key": "CDN-Cache-Control", 
+          "value": "public, s-maxage=1800"
+        }
+      ]
+    },
+    {
+      "source": "/api/thumbnails/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=86400, stale-while-revalidate=3600"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "public, s-maxage=604800"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/thumbnail/:channelId",
+      "destination": "/api/thumbnails/:channelId"
+    }
+  ]
+}
