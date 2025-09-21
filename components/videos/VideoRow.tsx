@@ -8,7 +8,7 @@ import { openPlayer, refreshPlayer } from '@/lib/redux/slices/playerSlice'
 import { useUpdateVideoClickMutation, useToggleVideoFavoriteMutation, useDeleteVideoMutation } from '@/lib/redux/api/videosApi'
 import { useGetChannelsQuery, useToggleChannelNotificationMutation } from '@/lib/redux/api/channelsApi'
 import { settingsApi } from '@/lib/redux/api/settingsApi'
-import { useChannelCache } from '@/lib/hooks/useVideoChannelCache'
+// import { useChannelCache } from '@/lib/hooks/useVideoChannelCache' // Temporarily disabled for build
 
 interface VideoRowProps {
   video: Video | VideoWithChannel
@@ -40,17 +40,21 @@ export default function VideoRow({ video, channelData }: VideoRowProps) {
 
   // Extract channel ID from different DocumentReference formats
   let channelId: string | undefined
-  if (documentRef?.referencePath) {
-    // Format: "subscriptions/UCCj956IF62FDNT7Gouszaj9w" -> extract "UCCj956IF62FDNT7Gouszaj9w"
-    channelId = documentRef.referencePath.split('/').pop()
-  } else if (documentRef?.id) {
-    channelId = documentRef.id
-  } else if (documentRef?._path?.segments?.length > 0) {
-    channelId = documentRef._path.segments.slice(-1)[0] // Last segment
-  } else {
-    channelId = video.channel_id // Legacy fallback
+  if (typeof window !== 'undefined') {
+    // Only extract channel ID on client side
+    if (documentRef?.referencePath) {
+      // Format: "subscriptions/UCCj956IF62FDNT7Gouszaj9w" -> extract "UCCj956IF62FDNT7Gouszaj9w"
+      channelId = documentRef.referencePath.split('/').pop()
+    } else if (documentRef?.id) {
+      channelId = documentRef.id
+    } else if (documentRef?._path?.segments?.length > 0) {
+      channelId = documentRef._path.segments.slice(-1)[0] // Last segment
+    } else {
+      channelId = video.channel_id // Legacy fallback
+    }
   }
-  const { channel: cachedChannel } = useChannelCache(channelId || '')
+  // const { channel: cachedChannel } = useChannelCache(channelId || '') // Temporarily disabled
+  const cachedChannel = null // Temporarily disabled for build
 
   // Strategy 3: Fallback to legacy channel query (for backward compatibility)
   const hasChannelData = channelData || populatedChannel || cachedChannel

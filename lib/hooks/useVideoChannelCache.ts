@@ -12,6 +12,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { VideoWithChannel, Channel, CacheStats } from '@/types'
 import { getVideoChannelCache } from '@/lib/cache/video-channel-cache'
 
+// Ensure this only runs on client side
+const isClient = typeof window !== 'undefined'
+
 interface UseVideoCacheOptions {
   prefetch?: boolean
   maxAge?: number
@@ -212,16 +215,28 @@ export function useChannelCache(channelId: string): {
  * Hook for cache statistics and management
  */
 export function useCacheManagement(): {
-  stats: ReturnType<typeof getVideoChannelCache>['getStats']
+  stats: ReturnType<ReturnType<typeof getVideoChannelCache>['getStats']>
   clearCache: () => void
   invalidateChannel: (channelId: string) => void
   prefetchVideos: (videoIds: string[]) => Promise<void>
 } {
-  const [stats, setStats] = useState(() => getVideoChannelCache().getStats())
-  const cache = getVideoChannelCache()
+  const [stats, setStats] = useState(() =>
+    isClient ? getVideoChannelCache().getStats() : {
+      totalReads: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      channelsFetched: 0,
+      videosFetched: 0,
+      video: { size: 0, hits: 0, memory: 0 },
+      channel: { size: 0, hits: 0, memory: 0 }
+    }
+  )
+  const cache = isClient ? getVideoChannelCache() : null
 
   // Update stats periodically
   useEffect(() => {
+    if (!cache) return
+
     const interval = setInterval(() => {
       setStats(cache.getStats())
     }, 5000) // Update every 5 seconds
@@ -230,16 +245,19 @@ export function useCacheManagement(): {
   }, [cache])
 
   const clearCache = useCallback(() => {
+    if (!cache) return
     cache.clear()
     setStats(cache.getStats())
   }, [cache])
 
   const invalidateChannel = useCallback((channelId: string) => {
+    if (!cache) return
     cache.invalidateChannel(channelId)
     setStats(cache.getStats())
   }, [cache])
 
   const prefetchVideos = useCallback(async (videoIds: string[]) => {
+    if (!cache) return
     await cache.prefetchVideos(videoIds)
     setStats(cache.getStats())
   }, [cache])

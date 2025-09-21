@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
         }
 
         const videoData = videoSnapshot.data()
+        if (!videoData) continue
 
         // Handle both new DocumentReference format and legacy channel_id format
         let channelRef: FirebaseFirestore.DocumentReference | null = null
@@ -125,8 +126,8 @@ export async function GET(request: NextRequest) {
           let channelId: string | null = null
 
           // Extract channel ID from DocumentReference or legacy field
-          if (video.channel && typeof video.channel === 'object' && video.channel._path) {
-            channelId = video.channel._path.segments[video.channel._path.segments.length - 1]
+          if (video.channel && typeof video.channel === 'object' && (video.channel as any)._path) {
+            channelId = (video.channel as any)._path.segments[(video.channel as any)._path.segments.length - 1]
           } else if (video.channel_id) {
             channelId = video.channel_id
           }
