@@ -5,6 +5,8 @@ export interface Video {
   channel_id: string
   channel_title: string
   channel_thumbnail?: string
+  // DocumentReference to channel document (for new system)
+  channel?: any // DocumentReference type (Firebase specific)
   link: string
   youtube_url: string
   thumbnail?: string
@@ -14,6 +16,38 @@ export interface Video {
   click_count: number
   is_viewed: boolean
   is_favorite: boolean
+}
+
+// Enhanced video type with populated channel data
+export interface VideoWithChannel extends Omit<Video, 'channel'> {
+  channel: Channel
+}
+
+// Cache-related types
+export interface CacheEntry<T> {
+  data: T
+  timestamp: number
+  hits: number
+}
+
+export interface CacheStats {
+  totalReads: number
+  cacheHits: number
+  cacheMisses: number
+  channelsFetched: number
+  videosFetched: number
+}
+
+// Batch fetch request/response types
+export interface BatchVideoRequest {
+  videoIds: string[]
+  includeChannel?: boolean
+  maxAge?: number // Cache TTL in seconds
+}
+
+export interface BatchVideoResponse {
+  videos: VideoWithChannel[]
+  cacheStats: CacheStats
 }
 
 export interface Channel {

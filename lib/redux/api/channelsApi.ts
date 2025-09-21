@@ -19,7 +19,7 @@ export const channelsApi = createApi({
   }),
   tagTypes: ['Channel', 'ChannelStats'],
   endpoints: (builder) => ({
-    getChannels: builder.query<ChannelsResponse, ChannelFilters & { lastDocId?: string }>({
+    getChannels: builder.query<ChannelsResponse, ChannelFilters & { lastDocId?: string; pageSize?: string }>({
       query: (filters) => ({ 
         url: '', 
         params: filters 

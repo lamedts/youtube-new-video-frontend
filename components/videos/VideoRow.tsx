@@ -2,18 +2,21 @@
 
 import { useState } from 'react'
 import { Eye, Star, Trash2, Play, Volume2, BellOff } from 'lucide-react'
-import { Video } from '@/types'
+import { Video, VideoWithChannel, Channel } from '@/types'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 import { openPlayer, refreshPlayer } from '@/lib/redux/slices/playerSlice'
 import { useUpdateVideoClickMutation, useToggleVideoFavoriteMutation, useDeleteVideoMutation } from '@/lib/redux/api/videosApi'
 import { useGetChannelsQuery, useToggleChannelNotificationMutation } from '@/lib/redux/api/channelsApi'
 import { settingsApi } from '@/lib/redux/api/settingsApi'
+import { useChannelCache } from '@/lib/hooks/useVideoChannelCache'
 
 interface VideoRowProps {
-  video: Video
+  video: Video | VideoWithChannel
+  // Optional: provide channel data directly to avoid lookup
+  channelData?: Channel
 }
 
-export default function VideoRow({ video }: VideoRowProps) {
+export default function VideoRow({ video, channelData }: VideoRowProps) {
   const dispatch = useAppDispatch()
   const { currentVideo, isOpen } = useAppSelector(state => state.player)
   const [updateVideoClick] = useUpdateVideoClickMutation()
@@ -25,17 +28,91 @@ export default function VideoRow({ video }: VideoRowProps) {
 
   // Check if this video is currently playing
   const isCurrentlyPlaying = isOpen && currentVideo?.video_id === video.video_id
-  
-  // Fetch all channels and find the matching one
+
+  // Get channel data with multiple fallback strategies
+  // Strategy 1: Check if we have populated channel data
+  const hasPopulatedChannel = 'channel' in video && video.channel && typeof video.channel === 'object' && 'channel_id' in video.channel
+  const populatedChannel = hasPopulatedChannel ? (video as VideoWithChannel).channel : null
+
+  // Strategy 2: Try cache for individual channel lookup (always call hook)
+  // Extract channel ID from DocumentReference - check multiple possible field names
+  const documentRef = (video as any).channel || (video as any).channel_ref
+
+  // Extract channel ID from different DocumentReference formats
+  let channelId: string | undefined
+  if (documentRef?.referencePath) {
+    // Format: "subscriptions/UCCj956IF62FDNT7Gouszaj9w" -> extract "UCCj956IF62FDNT7Gouszaj9w"
+    channelId = documentRef.referencePath.split('/').pop()
+  } else if (documentRef?.id) {
+    channelId = documentRef.id
+  } else if (documentRef?._path?.segments?.length > 0) {
+    channelId = documentRef._path.segments.slice(-1)[0] // Last segment
+  } else {
+    channelId = video.channel_id // Legacy fallback
+  }
+  const { channel: cachedChannel } = useChannelCache(channelId || '')
+
+  // Strategy 3: Fallback to legacy channel query (for backward compatibility)
+  const hasChannelData = channelData || populatedChannel || cachedChannel
   const { data: channelsData } = useGetChannelsQuery({
     searchTerm: '',
     notificationFilter: 'all',
     sortBy: 'name',
-    sortOrder: 'asc'
+    sortOrder: 'asc',
+    pageSize: '1000' // IMMEDIATE FIX: Fetch more channels to avoid pagination limits
+  }, {
+    skip: !!hasChannelData // Skip this query if we already have channel data
   })
-  
-  // Find the channel that matches this video's channel_id
-  const channel = channelsData?.channels?.find(ch => ch.channel_id === video.channel_id)
+
+  // Determine final channel data to use
+  let channel: Channel | null = null
+  if (channelData) {
+    channel = channelData // Strategy 1: Use provided channelData prop
+  } else if (populatedChannel) {
+    channel = populatedChannel // Strategy 2: Use populated channel from VideoWithChannel
+  } else if (cachedChannel) {
+    channel = cachedChannel // Strategy 3: Use cached channel data
+  } else if (channelsData?.channels && channelId) {
+    // Strategy 4: Search in channels query result
+    channel = channelsData.channels.find(ch => ch.channel_id === channelId) || null
+  }
+
+  // Debug logging to understand what's happening
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[VideoRow Debug] ${video.channel_title || 'Unknown Channel'}:`, {
+      // Video data inspection
+      videoId: video.video_id,
+      videoTitle: video.title,
+      legacyChannelId: video.channel_id, // Legacy field (should be undefined after migration)
+      legacyChannelTitle: video.channel_title, // Legacy field (should be undefined after migration)
+      documentRefChannelId: channelId, // Extracted from DocumentReference
+      hasDocumentRef: !!documentRef,
+      documentRefPath: documentRef?._path?.segments?.join('/'),
+      documentRefId: documentRef?.id,
+      documentRefSegments: documentRef?._path?.segments,
+      // Detailed DocumentReference inspection
+      documentRefType: typeof documentRef,
+      documentRefKeys: documentRef ? Object.keys(documentRef) : null,
+      documentRefConstructor: documentRef?.constructor?.name,
+      // Check different possible structures
+      channelRefField: (video as any).channel_ref,
+      channelRefType: typeof (video as any).channel_ref,
+      channelRefKeys: (video as any).channel_ref ? Object.keys((video as any).channel_ref) : null,
+      videoKeys: Object.keys(video),
+
+      // Channel lookup results
+      hasChannelData: !!channelData,
+      hasPopulatedChannel: !!populatedChannel,
+      hasCachedChannel: !!cachedChannel,
+      hasChannelsQuery: !!channelsData?.channels?.length,
+      channelsQueryTotal: channelsData?.channels?.length || 0,
+
+      // Final results
+      finalChannelFound: !!channel,
+      finalChannelThumbnail: channel?.thumbnail,
+      finalChannelTitle: channel?.title || video.channel_title
+    })
+  }
 
   const formatDateTime = (dateString: string) => {
     try {
@@ -145,25 +222,25 @@ export default function VideoRow({ video }: VideoRowProps) {
             transition-all duration-200 hover:opacity-80
             ${isViewed ? 'grayscale' : ''}
           `}>
-            {channel?.thumbnail ? (
+            {channel?.thumbnail && channelId ? (
               <img
-                src={`/api/thumbnails/${video.channel_id}?fallback=${encodeURIComponent(channel.thumbnail)}`}
-                alt={video.channel_title}
+                src={`/api/thumbnails/${channelId}?fallback=${encodeURIComponent(channel.thumbnail)}`}
+                alt={channel.title || 'Channel'}
                 className="w-full h-full rounded-lg object-cover"
                 loading="lazy"
                 onError={(e) => {
                   // Hide image on 429 or other errors and show fallback
-                  console.warn(`Thumbnail failed to load for ${video.channel_title}:`, e);
+                  console.warn(`Thumbnail failed to load for ${channel.title}:`, e);
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-            ) : video.channel_title ? (
+            ) : channel?.title ? (
               <div
                 className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center"
-                title={`${video.channel_title} channel`}
+                title={`${channel.title} channel`}
               >
                 <span className="text-white font-bold text-sm">
-                  {video.channel_title.charAt(0).toUpperCase()}
+                  {channel.title.charAt(0).toUpperCase()}
                 </span>
               </div>
             ) : (
